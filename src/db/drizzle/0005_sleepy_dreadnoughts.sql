@@ -1,0 +1,1 @@
+ALTER TABLE `files` ADD `kb_id` integer NOT NULL;

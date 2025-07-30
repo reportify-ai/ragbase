@@ -1,0 +1,29 @@
+RAGBASE ADDITIONAL TERMS
+
+Based on the Apache License, Version 2.0
+
+This project is licensed under the Apache License, Version 2.0, with the following additional terms:
+
+1. ADDITIONAL USAGE RESTRICTIONS
+
+Subject to the terms of the Apache License 2.0, you are permitted to use, reproduce, and distribute this software for commercial and non-commercial purposes, except under the following conditions:
+
+1.1 You may not use this software as part of any multi-tenant Software-as-a-Service (SaaS) offering, where a single instance serves multiple independent users or organizations.
+
+1.2 You may not redistribute or offer this software, whether modified or unmodified, through any commercial means to organizations with more than 10 users, unless explicitly authorized in writing by the Ragbase Team.
+
+1.3 You may not remove, alter, or replace any logos, trademarks, or copyright notices related to the Ragbase project.
+
+Permission for exceptions to the above restrictions may be granted through a separate commercial license agreement with the Ragbase Team.
+
+2. CONTRIBUTOR AGREEMENT
+
+By contributing to the Ragbase project, you agree that:
+
+2.1 Your contribution will be governed by the Apache License 2.0 and the additional terms stated in this notice.
+
+2.2 You acknowledge that these additional terms may be modified in future releases of the project, and you agree to be bound by the version in effect at the time your contribution is accepted into the codebase.
+
+For the full Apache License 2.0 text, visit: http://www.apache.org/licenses/LICENSE-2.0
+
+© 2025 REPORTIFY Team

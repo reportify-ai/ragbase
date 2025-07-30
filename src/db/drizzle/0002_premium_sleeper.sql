@@ -1,0 +1,1 @@
+ALTER TABLE `embedding_models` ADD `is_default` integer DEFAULT false NOT NULL;

@@ -1,0 +1,1 @@
+ALTER TABLE `embedding_models` ADD `provider` text DEFAULT 'ollama' NOT NULL;
