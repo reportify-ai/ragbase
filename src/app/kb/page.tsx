@@ -91,6 +91,7 @@ export default function KbPage() {
   const [filesLoading, setFilesLoading] = useState(false);
   const [filesError, setFilesError] = useState<string | null>(null);
   const [filePage, setFilePage] = useState(1);
+  const [jumpPage, setJumpPage] = useState<string>('');
   const [deletingFile, setDeletingFile] = useState<number | null>(null);
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
   const AUTO_REFRESH_INTERVAL = 10000; // 10 seconds auto refresh once
@@ -158,6 +159,15 @@ export default function KbPage() {
   function handleEditKb(kb: KbItem) {
     setEditingKb(kb);
     setModalOpen(true);
+  }
+
+  function handleJumpToPage() {
+    const page = parseInt(jumpPage);
+    const totalPages = Math.ceil(allFilesTotal / pageSize);
+    if (!isNaN(page) && page >= 1 && page <= totalPages) {
+      setFilePage(page);
+      setJumpPage(''); // 清空输入框
+    }
   }
 
   async function handleDeleteFile(fileId: number) {
@@ -409,6 +419,20 @@ export default function KbPage() {
                   )
                 )}
                 <Button size="sm" variant="ghost" onClick={() => setFilePage(p => Math.min(totalPages, p+1))} disabled={filePage === totalPages}>&gt;</Button>
+                
+                {/* 页数跳转输入框 */}
+                <input
+                  type="number"
+                  min={1}
+                  max={totalPages}
+                  value={jumpPage}
+                  onChange={(e) => setJumpPage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleJumpToPage()}
+                  className="w-12 h-8 text-center text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder={filePage.toString()}
+                  title={t('common.labels.jumpTo')}
+                />
+                
                 <span className="text-xs text-gray-400 ml-2">{t('pages.kb.totalFiles', { count: allFilesTotal })}</span>
               </div>
             </CardContent>
