@@ -12,7 +12,7 @@ export async function getDefaultModel() {
 }
 
 export async function createModel(data: Omit<typeof models.$inferInsert, 'id'>) {
-  // 如果设置为默认模型，先将其他模型的默认状态清除
+  // If set as default model, clear the default status of other models first
   if (data.is_default) {
     await db.update(models)
       .set({ is_default: false })
@@ -24,7 +24,7 @@ export async function createModel(data: Omit<typeof models.$inferInsert, 'id'>) 
 }
 
 export async function updateModel(id: number, data: Partial<typeof models.$inferInsert>) {
-  // 如果设置为默认模型，先将其他模型的默认状态清除
+  // If set as default model, clear the default status of other models first
   if (data.is_default) {
     await db.update(models)
       .set({ is_default: false })
