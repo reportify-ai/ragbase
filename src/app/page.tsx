@@ -222,9 +222,9 @@ export default function HomePage() {
                 t('pages.home.questions.1'),
                 t('pages.home.questions.2'),
                 t('pages.home.questions.3'),
-              ].map((q: string) => (
+              ].filter(q => q && q !== '...').map((q: string, index: number) => (
                 <Button
-                  key={q}
+                  key={`question-${index}`}
                   variant="outline"
                   className="text-left justify-start h-auto whitespace-normal w-full"
                   onClick={() => {
