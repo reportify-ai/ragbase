@@ -19,7 +19,7 @@ export function useTranslations() {
         setMessages(msgs);
       } catch (error) {
         console.error('Failed to load messages:', error);
-        // 回退到中文
+        // Fallback to Chinese
         const zhMessages = await getMessages('zh');
         setMessages(zhMessages);
         setLocale('zh');
@@ -33,7 +33,7 @@ export function useTranslations() {
 
   const t = (key: string, params?: Record<string, any>) => {
     if (!messages || loading) {
-      // 在加载时返回占位符，避免显示 key
+      // Return placeholder while loading to avoid showing key
       return '...';
     }
 
@@ -44,12 +44,12 @@ export function useTranslations() {
       if (value && typeof value === 'object' && k in value) {
         value = value[k];
       } else {
-        return key; // 如果找不到翻译，返回键名
+        return key; // If translation not found, return key name
       }
     }
 
     if (typeof value === 'string') {
-      // 处理参数替换
+      // Handle parameter replacement
       if (params) {
         return value.replace(/\{(\w+)\}/g, (match, param) => {
           return params[param] !== undefined ? String(params[param]) : match;

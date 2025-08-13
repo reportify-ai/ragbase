@@ -5,11 +5,11 @@ import { createChatChainWithKB, createSimpleChatChain, ChatMessage, DocumentRefe
 import { getChatHistory, addMessageToHistory } from '../../../lib/chat/history';
 import { RunnableSequence } from '@langchain/core/runnables';
 
-// 明确指定使用 Node.js 运行时
+// Explicitly specify Node.js runtime
 export const runtime = 'nodejs';
 
 /**
- * 聊天请求参数类型
+ * Chat request parameter type
  */
 interface ChatRequest {
   message: string;
@@ -18,11 +18,11 @@ interface ChatRequest {
 }
 
 /**
- * 聊天API - 流式响应
+ * Chat API - Streaming response
  */
 export async function POST(req: NextRequest) {
   try {
-    // 解析请求体，默认kbIds为undefined而不是[1]，让后续逻辑处理默认值
+    // Parse request body, default kbIds to undefined instead of [1], let subsequent logic handle default values
     const { message, sessionId, kbIds } = await req.json() as ChatRequest;
     
     if (!message) {
@@ -39,13 +39,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 获取历史记录
+    // Get chat history
     const history = getChatHistory(sessionId);
     
-    // 添加用户消息到历史记录
+    // Add user message to history
     addMessageToHistory(sessionId, { role: "human", content: message });
 
-    // 获取默认模型
+    // Get default model
     const modelConfig = await getDefaultModel();
     if (!modelConfig) {
       return NextResponse.json(
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 创建聊天模型
+    // Create chat model
     const model = createChatModel({
       provider: modelConfig.provider,
       modelName: modelConfig.name,
@@ -65,58 +65,58 @@ export async function POST(req: NextRequest) {
       maxTokens: modelConfig.maxTokens,
     });
 
-    // 处理kbIds参数
-    // 1. 如果kbIds是undefined或null，使用默认知识库[1]
-    // 2. 如果kbIds是空数组或包含空字符串，表示用户明确选择不使用知识库
-    // 3. 否则使用用户提供的kbIds
+    // Handle kbIds parameter
+    // 1. If kbIds is undefined or null, use default knowledge base [1]
+    // 2. If kbIds is empty array or contains empty string, user explicitly chooses not to use knowledge base
+    // 3. Otherwise use user provided kbIds
     const useKbIds = kbIds === undefined || kbIds === null 
-      ? [1] // 默认使用ID为1的知识库
+      ? [1] // Default to knowledge base with ID 1
       : (Array.isArray(kbIds) && kbIds.length === 0) || 
         (Array.isArray(kbIds) && kbIds.length === 1 && kbIds[0].toString() === '') 
-        ? [] // 空数组或['']表示不使用知识库
-        : kbIds; // 使用用户提供的知识库IDs
+        ? [] // Empty array or [''] means not using knowledge base
+        : kbIds; // Use user provided knowledge base IDs
 
-    // 创建聊天链
+    // Create chat chain
     let chainWithDocs: ChatChainWithDocs | null = null;
     let streamingChain: RunnableSequence;
     
     if (useKbIds.length > 0) {
-      // 使用知识库
+      // Use knowledge base
       chainWithDocs = await createChatChainWithKB(model, useKbIds, history);
       streamingChain = chainWithDocs;
       console.log("Knowledge base chain created, continuing with stream");
     } else {
-      // 不使用知识库
+      // Don't use knowledge base
       streamingChain = createSimpleChatChain(model, history);
     }
 
-    // 创建流式响应
+    // Create streaming response
     const stream = await streamingChain.stream(message);
     
-    // 创建响应头
+    // Create response headers
     const responseHeaders: Record<string, string> = {
       'Content-Type': 'text/plain; charset=utf-8',
       'Cache-Control': 'no-cache, no-transform',
       'X-Content-Type-Options': 'nosniff',
     };
     
-    // 创建一个新的 TransformStream 来处理流式响应
+    // Create a new TransformStream to handle streaming response
     let fullAIResponse = '';
     
     const transformStream = new TransformStream({
       async start(controller) {
-        // 在流开始时发送文档信息
+        // Send document information at the start of the stream
         if (chainWithDocs) {
           try {
-            // 获取检索到的文档，设置超时避免无限等待
+            // Get retrieved documents, set timeout to avoid infinite waiting
             const retrievedDocumentsPromise = Promise.race([
               new Promise<DocumentReference[]>((resolve) => {
-                // 尝试获取文档，如果成功则返回
+                // Try to get documents, return if successful
                 const docs = chainWithDocs!.getRetrievedDocuments();
                 resolve(docs);
               }),
               new Promise<DocumentReference[]>((resolve) => {
-                // 如果超过2秒还没有获取到文档，则返回空数组
+                // If no documents retrieved within 2 seconds, return empty array
                 setTimeout(() => {
                   console.log("Document retrieval timed out, continuing without documents");
                   resolve([]);
@@ -128,13 +128,13 @@ export async function POST(req: NextRequest) {
             console.log("Retrieved documents:", JSON.stringify(retrievedDocuments));
             
             if (retrievedDocuments.length > 0) {
-              // 创建一个特殊格式的消息，包含文档信息
+              // Create a special format message containing document information
               const docsMessage = JSON.stringify({
                 type: 'documents',
                 documents: retrievedDocuments
               });
               console.log("Sending documents message:", docsMessage.substring(0, 100) + "...");
-              // 发送文档信息作为第一个消息
+              // Send document information as the first message
               controller.enqueue(new TextEncoder().encode(`${docsMessage}\n---\n`));
             } else {
               console.log("No documents to send");
@@ -146,10 +146,10 @@ export async function POST(req: NextRequest) {
         }
       },
       transform(chunk, controller) {
-        // 直接将块传递给输出
+        // Pass chunk directly to output
         controller.enqueue(chunk);
         
-        // 只有当 chunk 是有效的 ArrayBuffer 或 ArrayBufferView 时才尝试解码
+        // Only try to decode if chunk is a valid ArrayBuffer or ArrayBufferView
         if (chunk instanceof Uint8Array) {
           try {
             const text = new TextDecoder().decode(chunk);
@@ -160,13 +160,13 @@ export async function POST(req: NextRequest) {
         }
       },
       flush(controller) {
-        // 流结束时，将完整响应添加到历史记录
+        // When stream ends, add complete response to history
         console.log("Stream ended, saving response to history");
         addMessageToHistory(sessionId, { role: "ai", content: fullAIResponse });
       }
     });
 
-    // 创建响应
+    // Create response
     const response = new Response(stream.pipeThrough(transformStream), {
       headers: responseHeaders,
     });
@@ -182,7 +182,7 @@ export async function POST(req: NextRequest) {
 }
 
 /**
- * 清除聊天历史API
+ * Clear chat history API
  */
 export async function DELETE(req: NextRequest) {
   try {
@@ -195,7 +195,7 @@ export async function DELETE(req: NextRequest) {
       );
     }
     
-    // 清除历史记录
+    // Clear history
     const { clearChatHistory } = await import('../../../lib/chat/history');
     clearChatHistory(sessionId);
     

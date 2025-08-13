@@ -40,7 +40,7 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
     },
   ];
 
-  // 在加载时显示骨架屏
+  // Show skeleton screen while loading
   if (loading) {
     return (
       <aside className="w-64 bg-white dark:bg-gray-800 flex flex-col min-h-screen">
