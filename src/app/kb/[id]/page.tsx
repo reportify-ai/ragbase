@@ -52,6 +52,7 @@ export default function KbDetailPage() {
   const [filesLoading, setFilesLoading] = useState(false);
   const [filesError, setFilesError] = useState<string | null>(null);
   const [filePage, setFilePage] = useState(1);
+  const [jumpPage, setJumpPage] = useState<string>('');
   const pageSize = 5;
 
   const [syncDirs, setSyncDirs] = useState<any[]>([]);
@@ -250,6 +251,15 @@ export default function KbDetailPage() {
     setEditKb({ id: Number(kbId), name: kbName, description: kbDesc });
     setEditError(null);
     setEditOpen(true);
+  }
+
+  function handleJumpToPage() {
+    const page = parseInt(jumpPage);
+    const totalPages = Math.ceil(filesTotal / pageSize);
+    if (!isNaN(page) && page >= 1 && page <= totalPages) {
+      setFilePage(page);
+      setJumpPage(''); // 清空输入框
+    }
   }
 
   function handleEditSave(data: { id?: number; name: string; description?: string }) {
@@ -470,6 +480,20 @@ export default function KbDetailPage() {
                   )
                 )}
                 <Button size="sm" variant="ghost" onClick={() => setFilePage(p => Math.min(totalPages, p+1))} disabled={filePage === totalPages}>&gt;</Button>
+                
+                {/* 页数跳转输入框 */}
+                <input
+                  type="number"
+                  min={1}
+                  max={totalPages}
+                  value={jumpPage}
+                  onChange={(e) => setJumpPage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleJumpToPage()}
+                  className="w-12 h-8 text-center text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder={filePage.toString()}
+                  title={t('common.labels.jumpTo')}
+                />
+                
                 <span className="text-xs text-gray-400 ml-2">{t('pages.kb.totalFiles', { count: filesTotal })}</span>
               </div>
             </CardContent>
