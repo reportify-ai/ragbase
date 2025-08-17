@@ -77,20 +77,20 @@ export async function createChatChainWithKB(
   kbIds: number[],
   history: ChatMessage[] = []
 ): Promise<ChatChainWithDocs> {
-  // 创建检索器数组
+  // Create retriever array
   const retrievers = await Promise.all(
     kbIds.map(async (kbId) => {
       const tableName = `kb_${kbId}`;
       const lanceManager = await getLanceDBManager(tableName);
       
-      // 创建一个检索函数
+      // Create a retrieval function
       return async (query: string) => {
         try {
           const docsWithScores = await lanceManager.similaritySearchWithScores(query, 5);
           const docs = docsWithScores.map(item => item[0]);
           console.log("Retrieved docs:", docs);        
           
-          // 保存分数信息
+          // Save score information
           const docReferences: DocumentReference[] = docsWithScores.map(([doc, score]) => ({
             kbId,
             fileId: doc.metadata.fileId,

@@ -34,7 +34,7 @@ interface ThinkCardProps {
  */
 export function ThinkCard({ 
   content, 
-  title = "深度思考", 
+  title = "Deep Thinking", 
   thinkTime, 
   isComplete = true, 
   defaultExpanded = true 
@@ -57,7 +57,7 @@ export function ThinkCard({
       >
         <span className="flex items-center">
           <BrainCircuit size={14} className="mr-1 text-gray-500 dark:text-gray-400" />
-          {title} {!isComplete && <span className="ml-1 text-gray-500 dark:text-gray-400">(思考中...)</span>}
+          {title} {!isComplete && <span className="ml-1 text-gray-500 dark:text-gray-400">(Thinking...)</span>}
         </span>
         {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
       </Button>

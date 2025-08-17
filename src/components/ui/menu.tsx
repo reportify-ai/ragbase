@@ -106,7 +106,7 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
                 variant="ghost"
                 className={`w-full justify-start space-x-3 ${isActive ? "bg-gray-200 dark:bg-gray-700 text-black dark:text-white" : ""}`}
                 onClick={() => {
-                  // 生成新的会话ID并跳转
+                  // Generate new session ID and navigate
                   window.location.href = `/chat?sessionId=${uuidv4()}`;
                 }}
               >
@@ -116,7 +116,7 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
             );
           }
           
-          // 常规链接
+          // Regular link
           return (
             <Button
               asChild

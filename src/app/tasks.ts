@@ -4,7 +4,7 @@ import path from 'path';
 
 // Set up proper paths for the background process
 const isDev = process.env.NODE_ENV !== 'production';
-const basePath = isDev ? path.join(__dirname, '../../..') : path.join(process.resourcesPath, 'app');
+const basePath = isDev ? path.join(__dirname, '../../..') : process.cwd();
 process.chdir(basePath);
 
 console.log('[tasks] Starting background tasks...');

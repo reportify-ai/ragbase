@@ -100,7 +100,7 @@ export function SearchInputCard({
   onSubmit,
   isLoading = false,
   disabled = false,
-  placeholder = "输入您的问题...",
+  placeholder = "Enter your question...",
   inputHeight = "h-12",
   contentHeight,
   minHeight = "32px",
@@ -136,7 +136,7 @@ export function SearchInputCard({
   // Display selected knowledge base text
   const selectedKbText = selectedKbs.length === 1 
     ? selectedKbs[0] 
-    : `已选择 ${selectedKbs.length} 个知识库`;
+    : `Selected ${selectedKbs.length} knowledge bases`;
   
   // Knowledge base selection dropdown menu
   const KnowledgeBaseMenu = () => {
@@ -153,11 +153,11 @@ export function SearchInputCard({
           >
             {isLoadingKbs ? (
               <>
-                <Loader2 className="w-4 h-4 mr-1 animate-spin" /> 加载知识库...
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" /> Loading knowledge bases...
               </>
             ) : (
               <>
-                <Database className="w-4 h-4 mr-1" /> {selectedKbs.length === 0 ? "选择知识库" : selectedKbText}
+                <Database className="w-4 h-4 mr-1" /> {selectedKbs.length === 0 ? "Select Knowledge Base" : selectedKbText}
                 <ChevronDown className="w-4 h-4 ml-1" />
               </>
             )}

@@ -42,7 +42,7 @@ export function createChatModel({
       }
     });
   } else {
-    // 默认使用Ollama
+    // Use Ollama by default
     return new ChatOllama({
       model: modelName,
       baseUrl: apiUrl,

@@ -16,7 +16,7 @@ interface ScanFilesTaskOptions {
   ignoreHidden?: boolean; // Whether to ignore hidden files
 }
 
-// 计算文件hash
+// Calculate file hash
 async function hashFile(filePath: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const hash = crypto.createHash('sha256');
@@ -126,18 +126,18 @@ export function createScanFilesTask(options: ScanFilesTaskOptions) {
 
 export function createRealtimeScanTask(scanPath: string, syncDirectoryId: number, kbId: number, ignoreHidden: boolean = true) {
   return async () => {
-    // 设置 chokidar 选项，忽略隐藏文件和目录
+    // Set chokidar options, ignore hidden files and directories
     const watchOptions = {
       ignoreInitial: true,
       persistent: true,
       depth: Infinity,
-      ignored: ignoreHidden ? /(^|\/)\.[^\/\.]/g : undefined // 忽略以点开头的文件和目录
+      ignored: ignoreHidden ? /(^|\/)\.[^\/\.]/g : undefined // Ignore files and directories starting with dot
     };
     const watcher = chokidar.watch(scanPath, watchOptions);
     console.log('[RealtimeScanTask] Watcher created', scanPath);
     watcher.on('add', async (filePath) => {
       try {
-        // 忽略隐藏文件或临时文件
+        // Ignore hidden files or temporary files
         if (ignoreHidden && isHiddenOrTempFile(filePath)) {
           console.log(`[RealtimeScanTask] Skipping hidden/temp file: ${filePath}`);
           return;
@@ -151,10 +151,10 @@ export function createRealtimeScanTask(scanPath: string, syncDirectoryId: number
         const hash = await hashFile(filePath);
         if (await fileHashExists(hash)) {
           console.log(`[RealtimeScanTask] File already exists with same hash: ${filePath}`);
-          return; // 全局hash查重
+          return; // Global hash duplicate check
         }
         console.log(`[RealtimeScanTask] New file: ${filePath}, size: ${stat.size}, hash: ${hash}, syncDirId: ${syncDirectoryId}`);
-        // 先创建同步日志记录
+        // Create sync log record first
         const startTime = new Date().toISOString();
         const syncLog = await createSyncLog({
           syncDirectoryId,

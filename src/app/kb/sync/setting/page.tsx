@@ -46,14 +46,14 @@ function KbSyncSettingPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // 动态生成同步选项，使用翻译
+  // Dynamically generate sync options using translations
   const syncOptions = [
     { label: t('pages.kbSync.realtimeSync'), value: "realtime", desc: t('pages.kbSync.realtimeSyncDesc'), icon: <Zap className="w-4 h-4 text-yellow-500" /> },
     { label: t('pages.kbSync.manualSync'), value: "manual", desc: t('pages.kbSync.manualSyncDesc'), icon: <Hand className="w-4 h-4 text-gray-400" /> },
   ];
 
   useEffect(() => {
-    // 只从 sessionStorage 读取
+    // Only read from sessionStorage
     const sessionDirs = sessionStorage.getItem('syncDirs');
     const sessionKbId = sessionStorage.getItem('syncKbId');
     if (sessionDirs) {

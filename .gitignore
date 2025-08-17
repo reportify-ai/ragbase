@@ -44,7 +44,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Electron
-/electron/dist
-/electron/out
-/electron/.next/
+# Tauri
+/src-tauri/target
+/src-tauri/Cargo.lock

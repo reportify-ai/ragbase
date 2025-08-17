@@ -37,47 +37,47 @@ export const FileCard: React.FC<FileCardProps> = ({
   return (
     <Card className={`hover:shadow-md transition-shadow duration-200 ${className}`}>
       <CardContent className="p-4">
-        {/* 第一行：文件名称 */}
+        {/* First row: file name */
         <div className="flex items-center gap-2 mb-3">
           <FileIcon ext={fileExt} />
           <span className="font-medium truncate">{file.name}</span>
         </div>
         
-        {/* 第二行：信息和操作 */}
+        {/* Second row: info and actions */
         <div className="flex items-center text-xs text-gray-500 gap-3">
-          {/* 知识库 */}
+          {/* Knowledge base */
           {file.kb_name && (
             <div className="flex items-center gap-1">
-              <span>知识库:</span>
+              <span>Knowledge Base:</span>
               <span>{file.kb_name}</span>
             </div>
           )}
           
-          {/* 大小 */}
+          {/* Size */
           {typeof file.size === 'number' && (
             <div className="flex items-center gap-1">
-              <span>大小:</span>
+              <span>Size:</span>
               <span>{(file.size / 1024 / 1024).toFixed(2) + ' MB'}</span>
             </div>
           )}
           
-          {/* 上传时间 */}
+          {/* Upload time */
           {file.created_at && (
             <div className="flex items-center gap-1">
-              <span>上传时间:</span>
+              <span>Upload Time:</span>
               <span>{file.created_at.split('T')[0] + ' ' + (file.created_at.split('T')[1]?.slice(0,5) || '')}</span>
             </div>
           )}
           
-          {/* 状态 */}
+          {/* Status */
           {typeof file.status !== 'undefined' && (
             <div className="flex items-center gap-1">
-              <span>状态:</span>
+              <span>Status:</span>
               <FileStatus status={file.status} />
             </div>
           )}
           
-          {/* 操作 */}
+          {/* Actions */
           <div className="flex items-center gap-1 ml-auto">
             {file.status === 6 && file.path && (
               <FileOpener filePath={file.path} iconOnly={true} />

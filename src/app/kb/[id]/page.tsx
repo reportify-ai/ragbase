@@ -39,7 +39,7 @@ function getPageNumbers(current: number, total: number) {
 }
 
 const kbSchema = z.object({
-  name: z.string().min(1, '请输入知识库名称'),
+  name: z.string().min(1, 'Please enter knowledge base name'),
   description: z.string().optional(),
 });
 
@@ -78,7 +78,7 @@ export default function KbDetailPage() {
   const syncLogsPageSize = 10;
 
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const AUTO_REFRESH_INTERVAL = 10000; // 5秒自动刷新一次
+  const AUTO_REFRESH_INTERVAL = 10000; // Auto refresh every 10 seconds
   
   const [retryingFile, setRetryingFile] = useState<number | null>(null);
   const [deletingFile, setDeletingFile] = useState<number | null>(null);
@@ -115,7 +115,7 @@ export default function KbDetailPage() {
     // If there is a knowledge base ID, set auto refresh
     if (kbId) {
       refreshTimerRef.current = setInterval(() => {
-        console.log(`${t('pages.kb.autoRefreshFiles')} (${AUTO_REFRESH_INTERVAL/1000}秒间隔)`);
+        console.log(`${t('pages.kb.autoRefreshFiles')} (${AUTO_REFRESH_INTERVAL/1000}s interval)`);
         // Silent refresh, no loading state
         fetch(`/api/kb/files?kbId=${kbId}&limit=${pageSize}&offset=${(filePage-1)*pageSize}`)
           .then(res => res.json())
@@ -258,7 +258,7 @@ export default function KbDetailPage() {
     const totalPages = Math.ceil(filesTotal / pageSize);
     if (!isNaN(page) && page >= 1 && page <= totalPages) {
       setFilePage(page);
-      setJumpPage(''); // 清空输入框
+      setJumpPage(''); // Clear input box
     }
   }
 
@@ -303,7 +303,7 @@ export default function KbDetailPage() {
         )
       );
     } catch (error: any) {
-      console.error('重试文件失败:', error);
+      console.error('Failed to retry file:', error);
       alert(t('api.errors.retryFailed'));
     } finally {
       setRetryingFile(null);
@@ -481,7 +481,7 @@ export default function KbDetailPage() {
                 )}
                 <Button size="sm" variant="ghost" onClick={() => setFilePage(p => Math.min(totalPages, p+1))} disabled={filePage === totalPages}>&gt;</Button>
                 
-                {/* 页数跳转输入框 */}
+                {/* Page jump input */}
                 <input
                   type="number"
                   min={1}

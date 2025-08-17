@@ -59,20 +59,20 @@ export default function HomePage() {
             setSelectedKbs([data[0].name]);
           } else {
             // If there is no knowledge base, display a default value
-            setKbs([{ id: 1, name: "默认知识库", description: "系统默认知识库" }]);
-            setSelectedKbs(["默认知识库"]);
+            setKbs([{ id: 1, name: "Default Knowledge Base", description: "System default knowledge base" }]);
+            setSelectedKbs(["Default Knowledge Base"]);
           }
         } else {
           console.error("Failed to load knowledge bases");
           // Use default value when loading fails
-          setKbs([{ id: 1, name: "默认知识库", description: "系统默认知识库" }]);
-          setSelectedKbs(["默认知识库"]);
+          setKbs([{ id: 1, name: "Default Knowledge Base", description: "System default knowledge base" }]);
+          setSelectedKbs(["Default Knowledge Base"]);
         }
       } catch (error) {
         console.error("Error loading knowledge bases:", error);
         // Use default value when error occurs
-        setKbs([{ id: 1, name: "默认知识库", description: "系统默认知识库" }]);
-        setSelectedKbs(["默认知识库"]);
+        setKbs([{ id: 1, name: "Default Knowledge Base", description: "System default knowledge base" }]);
+        setSelectedKbs(["Default Knowledge Base"]);
       } finally {
         setIsLoading(false);
       }

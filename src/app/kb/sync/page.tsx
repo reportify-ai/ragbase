@@ -7,6 +7,7 @@ import { Upload, FolderOpen, Info, ChevronDown, ChevronUp } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SidebarMenu } from "@/components/ui/menu";
 import { useTranslations } from '@/i18n/hooks';
+import { invoke } from '@tauri-apps/api/core';
 
 function FAQ() {
   const { t } = useTranslations();
@@ -77,18 +78,28 @@ function KbSyncPageContent() {
   }, []);
   async function handleSelectDirs() {
     try {
-      // Check if in Electron environment
-      if (typeof window !== 'undefined' && 'electronAPI' in window) {
-        const dirs = await window.electronAPI.selectDirectories();
-        if (Array.isArray(dirs)) {
-          setSelectedDirs(Array.from(new Set([...selectedDirs, ...dirs])));
-        }
+      console.log('=== Tauri Directory Selection ===');
+      console.log('Attempting to call select_directories command...');
+      
+      // Use @tauri-apps/api invoke function
+      const dirs = await invoke('select_directories') as string[];
+      console.log('Received directories:', dirs);
+      
+      if (Array.isArray(dirs)) {
+        setSelectedDirs(Array.from(new Set([...selectedDirs, ...dirs])));
+        console.log('Updated selectedDirs:', dirs);
       } else {
-        alert(t('pages.kbSync.electronNotSupported'));
+        console.log('No directories selected or invalid response');
       }
     } catch (error) {
-      console.error(t('pages.kbSync.selectDirectoryFailed'), error);
-      alert(t('pages.kbSync.selectDirectoryFailed'));
+      console.error('Failed to select directories:', error);
+      
+      // check if it is because it is not in the Tauri environment
+      if (error instanceof Error && error.message.includes('__TAURI_INTERNALS__')) {
+        alert(t('pages.kbSync.electronNotSupported'));
+      } else {
+        alert(t('pages.kbSync.selectDirectoryFailed') + ': ' + error);
+      }
     }
   }
   function handleNext() {

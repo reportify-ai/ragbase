@@ -57,7 +57,7 @@ function TopCards({ kbs, onEdit, onDelete }: { kbs: KbItem[]; onEdit: (kb: KbIte
 }
 
 const kbSchema = z.object({
-  name: z.string().min(1, '请输入知识库名称'),
+  name: z.string().min(1, 'Please enter knowledge base name'),
   description: z.string().optional(),
 });
 
@@ -166,7 +166,7 @@ export default function KbPage() {
     const totalPages = Math.ceil(allFilesTotal / pageSize);
     if (!isNaN(page) && page >= 1 && page <= totalPages) {
       setFilePage(page);
-      setJumpPage(''); // 清空输入框
+      setJumpPage(''); // Clear input box
     }
   }
 
@@ -191,7 +191,7 @@ export default function KbPage() {
       // Re-fetch file list
       await fetchAllFiles();
     } catch (error: any) {
-      console.error('删除文件失败:', error);
+      console.error('Failed to delete file:', error);
       alert(`${t('api.errors.deleteFailed')}: ${error.message || t('api.errors.unknownError')}`);
     } finally {
       setDeletingFile(null);
@@ -420,7 +420,7 @@ export default function KbPage() {
                 )}
                 <Button size="sm" variant="ghost" onClick={() => setFilePage(p => Math.min(totalPages, p+1))} disabled={filePage === totalPages}>&gt;</Button>
                 
-                {/* 页数跳转输入框 */}
+                {/* Page jump input */}
                 <input
                   type="number"
                   min={1}

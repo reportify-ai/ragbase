@@ -35,7 +35,7 @@ export async function setDefaultEmbeddingModel(id: number) {
     
     return true;
   } catch (error) {
-    console.error('设置默认嵌入模型失败:', error);
+    console.error('Failed to set default embedding model:', error);
     return false;
   }
 }

@@ -110,7 +110,7 @@ export async function initData(db: any) {
     // Initialize default knowledge base
     const existingKbs = await db.select().from(kbs);
     if (!existingKbs || existingKbs.length === 0) {
-      await db.insert(kbs).values({ name: '默认知识库', description: '默认知识库' });
+      await db.insert(kbs).values({ name: 'Default', description: 'Default Knowledge Base' });
       console.log('Default knowledge base created');
     }
 

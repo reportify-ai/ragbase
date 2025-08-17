@@ -1,0 +1,26 @@
+{
+  "identifier": "main-capability",
+  "description": "Capability for the main window",
+  "windows": ["*"],
+  "webviews": ["*"],
+  "remote": {
+    "urls": ["http://localhost:3000/*", "https://localhost:3000/*"]
+  },
+  "permissions": [
+    "core:default",
+    "dialog:default",
+    "dialog:allow-open",
+    "dialog:allow-message",
+    "dialog:allow-ask",
+    "dialog:allow-confirm",
+    "dialog:allow-save",
+    "fs:default",
+    "fs:allow-read-file",
+    "fs:allow-write-file",
+    "fs:allow-create",
+    "fs:allow-exists",
+    "shell:default",
+    "opener:default",
+    "opener:allow-open-url"
+  ]
+}

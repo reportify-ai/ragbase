@@ -20,7 +20,7 @@ export function LanguageSwitcher() {
 
   const handleLanguageChange = async (newLocale: Locale) => {
     await changeLocale(newLocale);
-    // 重新加载页面以应用新语言
+    // Reload page to apply new language
     window.location.reload();
   };
 

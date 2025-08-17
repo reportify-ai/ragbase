@@ -32,14 +32,14 @@ export async function POST(req: NextRequest) {
   const { id } = await req.json();
   
   if (!id) {
-    return NextResponse.json({ error: '文件ID是必需的' }, { status: 400 });
+    return NextResponse.json({ error: 'File ID is required' }, { status: 400 });
   }
   
   try {
     const file = await resetFileForRetry(Number(id));
     return NextResponse.json({ success: true, data: file });
   } catch (error) {
-    return NextResponse.json({ error: '重试失败' }, { status: 500 });
+    return NextResponse.json({ error: 'Retry failed' }, { status: 500 });
   }
 }
 
@@ -48,13 +48,13 @@ export async function PUT(req: NextRequest) {
   const { ids } = await req.json();
   
   if (!ids || !Array.isArray(ids) || ids.length === 0) {
-    return NextResponse.json({ error: '文件ID列表是必需的' }, { status: 400 });
+    return NextResponse.json({ error: 'File IDs list is required' }, { status: 400 });
   }
   
   try {
     const files = await resetFilesForRetry(ids.map(id => Number(id)));
     return NextResponse.json({ success: true, data: files });
   } catch (error) {
-    return NextResponse.json({ error: '批量重试失败' }, { status: 500 });
+    return NextResponse.json({ error: 'Batch retry failed' }, { status: 500 });
   }
 } 

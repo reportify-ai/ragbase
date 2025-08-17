@@ -1,0 +1,38 @@
+{
+  "$schema": "https://tauri.app/v2/schema.json",
+  "identifier": "app.ragbase.desktop",
+  "build": {
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../.next"
+  },
+  "app": {
+    "security": {
+      "csp": null,
+      "capabilities": ["main-capability"]
+    },
+    "windows": [
+      {
+        "label": "main",
+        "fullscreen": false,
+        "resizable": true,
+        "title": "RAGBASE",
+        "width": 1200,
+        "height": 800
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "../public/icon.png",
+      "../public/icon.icns"
+    ],
+    "resources": {
+      "../.next": ".next",
+      "../node_modules": "node_modules",
+      "../dist": "dist",
+      "../package.json": "package.json"
+    }
+  }
+}

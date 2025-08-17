@@ -34,7 +34,8 @@ export async function runMigrations() {
   try {
     // Execute database migration
     console.log('Running database migrations...');
-    migrate(db, { migrationsFolder: './src/db/drizzle' });
+    const migrationsFolder = path.join(__dirname, 'drizzle');
+    migrate(db, { migrationsFolder });
     console.log('Database migrations completed successfully');
 
     // Initialize default data

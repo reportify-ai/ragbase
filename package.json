@@ -3,22 +3,20 @@
   "version": "0.1.0",
   "description": "RAGBASE is a local RAG application.",
   "author": "RAGBASE",
-  "main": "electron/dist/main.js",
+  "main": "src-tauri/target/release/ragbase",
   "scripts": {
     "dev": "npm rebuild && next dev --turbopack",
-    "build": "npm rebuild && next build && npm run build:tasks",
+    "build": "npm rebuild && next build && npm run build:tasks && npm run copy:drizzle",
     "build:tasks": "tsc -p tsconfig.tasks.json",
     "start": "npm run build && next start",
     "lint": "next lint",
-    "electron:dev": "npm run electron:build && npm run build:tasks && electron .",
-    "electron:build": "npx electron-rebuild -f && rm -rf electron/dist && tsc -p electron/tsconfig.json",
-    "electron:start": "npm run electron:build && npm run build:tasks && electron-forge start",
-    "package": "npm run electron:build && npm run build:tasks && electron-forge package",
-    "dist": "npm run build && npm run electron:build && electron-forge make",
+    "tauri:dev": "npm run build:tasks && tauri dev",
+    "tauri:build": "tauri build",
     "test": "vitest",
     "db:migrate": "npm rebuild && drizzle-kit migrate",
     "db:generate": "drizzle-kit generate",
-    "db": "npm run db:generate && npm run db:migrate"
+    "db": "npm run db:generate && npm run db:migrate",
+    "copy:drizzle": "cp -r src/db/drizzle dist/db/"
   },
   "dependencies": {
     "@lancedb/lancedb": "^0.12.0",
@@ -30,6 +28,7 @@
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-dropdown-menu": "^2.1.15",
     "@radix-ui/react-slot": "^1.2.3",
+    "@tauri-apps/api": "^2.7.0",
     "@types/uuid": "^10.0.0",
     "apache-arrow": "^14.0.2",
     "better-sqlite3": "^12.1.1",
@@ -55,15 +54,11 @@
     "zod": "^3.25.67"
   },
   "devDependencies": {
-    "@electron-forge/cli": "^7.8.1",
-    "@electron-forge/maker-deb": "^7.8.1",
-    "@electron-forge/maker-dmg": "^7.8.1",
-    "@electron-forge/maker-rpm": "^7.8.1",
     "@eslint/eslintrc": "^3",
     "@next/eslint-plugin-next": "^15.3.4",
     "@tailwindcss/postcss": "^4",
+    "@tauri-apps/cli": "^2.7.1",
     "@types/better-sqlite3": "^7.6.13",
-    "@types/electron": "^1.6.12",
     "@types/node": "^20.19.1",
     "@types/pdf-parse": "^1.1.5",
     "@types/react": "^19",
@@ -71,9 +66,7 @@
     "@types/react-syntax-highlighter": "^15.5.13",
     "@types/supertest": "^6.0.3",
     "@vitest/ui": "^3.2.4",
-    "electron": "^37.1.0",
-    "electron-forge-maker-appimage": "^26.0.12",
-    "electron-rebuild": "^3.2.9",
+    "concurrently": "^9.2.0",
     "eslint": "^9",
     "eslint-config-next": "15.3.4",
     "eslint-plugin-react-hooks": "^5.2.0",
@@ -83,60 +76,5 @@
     "tw-animate-css": "^1.3.4",
     "typescript": "^5",
     "vitest": "^3.2.4"
-  },
-  "build": {
-    "appId": "com.ragbase.desktop",
-    "icon": "public/icon.png",
-    "productName": "RAGBASE",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "electron/",
-      "src/",
-      "public/",
-      "package.json",
-      "next.config.ts",
-      "node_modules/",
-      ".next/"
-    ],
-    "mac": {
-      "target": "dmg"
-    },
-    "win": {
-      "target": "nsis"
-    },
-    "linux": {
-      "target": "AppImage"
-    },
-    "asar": true
-  },
-  "config": {
-    "forge": {
-      "packagerConfig": {
-        "icon": "public/icon.icns",
-        "directories": {
-          "output": "dist"
-        }
-      },
-      "makers": [
-        {
-          "name": "@electron-forge/maker-dmg",
-          "platforms": [
-            "darwin"
-          ],
-          "config": {}
-        },
-        {
-          "name": "@electron-forge/maker-deb",
-          "platforms": [
-            "linux"
-          ],
-          "config": {
-            "icon": "public/icon.png"
-          }
-        }
-      ]
-    }
   }
 }

@@ -27,7 +27,7 @@ export default function SettingsPage() {
             <LanguageSwitcher />
           </div>
           
-          {/* Tab 切换 */}
+          {/* Tab switching */}
           <div className="flex space-x-8 border-b mb-8">
             {tabs.map((tab) => (
               <button

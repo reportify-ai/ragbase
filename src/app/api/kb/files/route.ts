@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
   // Add knowledge base name to each file
   const filesWithKbName = filesData.map(file => ({
     ...file,
-    kb_name: kbsMap.get(file.kb_id) || '未知知识库'
+    kb_name: kbsMap.get(file.kb_id) || 'Unknown Knowledge Base'
   }));
   
   return NextResponse.json({ data: filesWithKbName, total });

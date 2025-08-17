@@ -9,14 +9,14 @@ A local RAG (Retrieval-Augmented Generation) application that enables users to c
 - 🔍 **Advanced Search**: Semantic search across your knowledge base
 - 📚 **Document Processing**: Support for various file formats
 - 🧠 **Local LLM Integration**: Works with local language models
-- 🖥️ **Desktop App**: Native Electron application
+- 🖥️ **Desktop App**: Native Tauri application
 - ⚡ **Fast & Efficient**: Optimized for local processing
 
 ## Tech Stack
 
 - **Frontend**: Next.js, TypeScript, Tailwind CSS
 - **Backend**: Node.js, Drizzle ORM
-- **Desktop**: Electron
+- **Desktop**: Tauri (Rust)
 - **AI/ML**: Local LLM integration, Vector embeddings
 - **Database**: SQLite with vector support
 
@@ -24,6 +24,7 @@ A local RAG (Retrieval-Augmented Generation) application that enables users to c
 
 - Node.js 18+ 
 - npm or yarn
+- Rust (for Tauri)
 - Local LLM setup (optional)
 
 ## Installation
@@ -53,22 +54,19 @@ npm run db
 # Run development server
 npm run dev
 
-# Run Electron development app
-npm run electron:dev
+# Run Tauri development app
+npm run tauri:dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 ### Production Build
 
-For building the desktop app, you need to install electron-forge:
+For building the desktop app:
 
 ```bash
-# Install electron-forge globally
-npm install -g electron-forge
-
 # Build desktop app
-npm run dist
+npm run tauri:build
 ```
 
 ## Usage
@@ -87,7 +85,7 @@ ragbase/
 │   ├── components/    # React components
 │   ├── lib/          # Utility libraries
 │   └── db/           # Database schema and migrations
-├── electron/         # Electron main and preload scripts
+├── src-tauri/       # Tauri backend (Rust)
 └── tests/           # Test files
 ```
 

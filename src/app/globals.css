@@ -80,7 +80,7 @@ body {
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
   
-  /* 滚动条样式变量 */
+  /* Scrollbar style variables */
   --scrollbar-width: 4px;
   --scrollbar-track-color: transparent;
   --scrollbar-thumb-color: rgba(0, 0, 0, 0.2);
@@ -120,7 +120,7 @@ body {
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
   
-  /* 深色模式滚动条样式 */
+  /* Dark mode scrollbar styles */
   --scrollbar-thumb-color: rgba(255, 255, 255, 0.2);
   --scrollbar-thumb-hover-color: rgba(255, 255, 255, 0.3);
 }
@@ -134,7 +134,7 @@ body {
   }
 }
 
-/* 全局滚动条样式 */
+/* Global scrollbar styles */
 ::-webkit-scrollbar {
   width: var(--scrollbar-width);
   height: var(--scrollbar-width);
