@@ -37,15 +37,15 @@ export const FileCard: React.FC<FileCardProps> = ({
   return (
     <Card className={`hover:shadow-md transition-shadow duration-200 ${className}`}>
       <CardContent className="p-4">
-        {/* First row: file name */
+        {/* First row: file name */}
         <div className="flex items-center gap-2 mb-3">
           <FileIcon ext={fileExt} />
           <span className="font-medium truncate">{file.name}</span>
         </div>
         
-        {/* Second row: info and actions */
+        {/* Second row: info and actions */}
         <div className="flex items-center text-xs text-gray-500 gap-3">
-          {/* Knowledge base */
+          {/* Knowledge base */}
           {file.kb_name && (
             <div className="flex items-center gap-1">
               <span>Knowledge Base:</span>
@@ -53,7 +53,7 @@ export const FileCard: React.FC<FileCardProps> = ({
             </div>
           )}
           
-          {/* Size */
+          {/* Size */}
           {typeof file.size === 'number' && (
             <div className="flex items-center gap-1">
               <span>Size:</span>
@@ -61,7 +61,7 @@ export const FileCard: React.FC<FileCardProps> = ({
             </div>
           )}
           
-          {/* Upload time */
+          {/* Upload time */}
           {file.created_at && (
             <div className="flex items-center gap-1">
               <span>Upload Time:</span>
@@ -69,7 +69,7 @@ export const FileCard: React.FC<FileCardProps> = ({
             </div>
           )}
           
-          {/* Status */
+          {/* Status */}
           {typeof file.status !== 'undefined' && (
             <div className="flex items-center gap-1">
               <span>Status:</span>
@@ -77,7 +77,7 @@ export const FileCard: React.FC<FileCardProps> = ({
             </div>
           )}
           
-          {/* Actions */
+          {/* Actions */}
           <div className="flex items-center gap-1 ml-auto">
             {file.status === 6 && file.path && (
               <FileOpener filePath={file.path} iconOnly={true} />
