@@ -105,7 +105,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the RAGBASE Open Source License (based on Apache License 2.0 with additional terms)  - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
