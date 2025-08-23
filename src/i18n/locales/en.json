@@ -71,7 +71,7 @@
       "subtitle": "Use your local large language models and knowledge base for intelligent Q&A and document search",
       "placeholder": "Enter your question...",
       "recentChats": "Recent Chats",
-      "recentChatsDesc": "Continue your last conversation or start a new one",
+      "recentChatsDesc": "Explore your chat history and keep your memories.",
       "viewHistory": "View Chat History",
       "knowledgeBaseManagement": "Knowledge Base Management",
       "knowledgeBaseManagementDesc": "Manage your knowledge bases, upload new documents or sync directories",
