@@ -220,6 +220,7 @@
     },
     "chatHistory": {
       "title": "对话历史",
+      "conversationList": "对话列表",
       "newChat": "新建对话",
       "loading": "加载中...",
       "noHistory": "暂无对话历史",

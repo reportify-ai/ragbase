@@ -118,86 +118,90 @@ export default function ChatHistoryPage() {
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
       <SidebarMenu />
       
-      <main className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between px-8 py-6 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
-            {t('pages.chatHistory.title')}
-          </h1>
-          <Button 
-            onClick={createNewChat}
-            className="flex items-center"
-          >
-            <MessageSquarePlus className="w-4 h-4 mr-2" />
-            {t('pages.chatHistory.newChat')}
-          </Button>
-        </div>
+      <main className="flex-1 p-8 overflow-y-auto">
+        <div className="max-w-3xl mx-auto">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+              {t('pages.chatHistory.title')}
+            </h2>
+            <Button 
+              onClick={createNewChat}
+              className="flex items-center gap-2"
+            >
+              <MessageSquarePlus className="w-4 h-4" />
+              {t('pages.chatHistory.newChat')}
+            </Button>
+          </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto px-8 py-6">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="text-gray-500 dark:text-gray-400">
-                {t('pages.chatHistory.loading')}
+          <div className="space-y-4">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="text-gray-500 dark:text-gray-400">
+                  {t('pages.chatHistory.loading')}
+                </div>
               </div>
-            </div>
-          ) : sessions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-center">
-              <MessageCircle className="w-16 h-16 text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-600 dark:text-gray-300 mb-2">
-                {t('pages.chatHistory.noHistory')}
-              </h3>
-              <p className="text-gray-500 dark:text-gray-400 mb-4">
-                {t('pages.chatHistory.noHistoryDesc')}
-              </p>
-              <Button onClick={createNewChat}>
-                {t('pages.chatHistory.startNewChat')}
-              </Button>
-            </div>
-          ) : (
-            <div className="max-w-4xl mx-auto">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                {sessions.map((session, index) => (
-                  <div 
-                    key={session.sessionId}
-                    className={`flex items-center justify-between px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-200 dark:border-gray-700 last:border-b-0`}
-                    onClick={() => continueConversation(session.sessionId)}
-                  >
-                    <div className="flex items-center flex-1 min-w-0">
-                      <MessageCircle className="w-5 h-5 text-blue-500 mr-3 flex-shrink-0" />
+            ) : sessions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <MessageCircle className="w-16 h-16 text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-600 dark:text-gray-300 mb-2">
+                  {t('pages.chatHistory.noHistory')}
+                </h3>
+                <p className="text-gray-500 dark:text-gray-400 mb-4">
+                  {t('pages.chatHistory.noHistoryDesc')}
+                </p>
+                <Button onClick={createNewChat}>
+                  {t('pages.chatHistory.startNewChat')}
+                </Button>
+              </div>
+            ) : (
+              sessions.map((session, index) => (
+                <div 
+                  key={session.sessionId}
+                  className="group p-4 cursor-pointer transition-colors duration-150 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-md border-b border-gray-100 dark:border-gray-800 last:border-b-0"
+                  onClick={() => continueConversation(session.sessionId)}
+                >
+                  {/* Conversation header */}
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <MessageCircle className="w-5 h-5 text-blue-500 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        <h3 className="text-base font-medium text-gray-900 dark:text-white truncate">
                           {session.title || t('pages.chatHistory.untitled')}
                         </h3>
                       </div>
                     </div>
                     
-                    <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-                      <div className="flex items-center">
-                        <MessageCircle className="w-4 h-4 mr-1" />
-                        {t('pages.chatHistory.messageCount', { count: session.messageCount })}
-                      </div>
-                      <div className="flex items-center">
-                        <Calendar className="w-4 h-4 mr-1" />
-                        {formatDate(session.updatedAt)}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          showDeleteConfirmation(session.sessionId);
-                        }}
-                        className="p-2 hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                    {/* Delete button */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        showDeleteConfirmation(session.sessionId);
+                      }}
+                      className="p-2 opacity-0 group-hover:opacity-60 hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-500" />
+                    </Button>
+                  </div>
+                  
+                  {/* Conversation metadata */}
+                  <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 gap-4 ml-8">
+                    <div className="flex items-center gap-1">
+                      <MessageCircle className="w-3 h-3" />
+                      <span>{t('pages.chatHistory.messageCount', { count: session.messageCount })}</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      <span>{formatDate(session.updatedAt)}</span>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </main>
       
