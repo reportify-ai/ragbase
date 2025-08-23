@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { SidebarMenu } from "@/components/ui/menu";
 import { MessageSquarePlus, Trash2, Calendar, MessageCircle } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useTranslations } from '@/i18n/hooks';
 
 interface ChatSession {
@@ -22,6 +23,10 @@ export default function ChatHistoryPage() {
   const router = useRouter();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // State for delete confirmation dialog
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
 
   // Load chat sessions
   useEffect(() => {
@@ -50,11 +55,15 @@ export default function ChatHistoryPage() {
     router.push(`/chat?sessionId=${sessionId}`);
   };
 
+  // Show delete confirmation dialog
+  const showDeleteConfirmation = (sessionId: string) => {
+    setSessionToDelete(sessionId);
+    setShowDeleteDialog(true);
+  };
+
   // Delete session
-  const deleteSession = async (sessionId: string) => {
-    if (!confirm(t('pages.chatHistory.confirmDelete'))) {
-      return;
-    }
+  const deleteSession = async () => {
+    if (!sessionToDelete) return;
 
     try {
       const response = await fetch('/api/chat/sessions', {
@@ -64,19 +73,21 @@ export default function ChatHistoryPage() {
         },
         body: JSON.stringify({
           action: 'delete',
-          sessionId
+          sessionId: sessionToDelete
         }),
       });
 
       if (response.ok) {
         // Remove from local state
-        setSessions(prev => prev.filter(s => s.sessionId !== sessionId));
+        setSessions(prev => prev.filter(s => s.sessionId !== sessionToDelete));
       } else {
         alert(t('pages.chatHistory.deleteError'));
       }
     } catch (error) {
       console.error("Error deleting session:", error);
       alert(t('pages.chatHistory.deleteError'));
+    } finally {
+      setSessionToDelete(null);
     }
   };
 
@@ -175,7 +186,7 @@ export default function ChatHistoryPage() {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          deleteSession(session.sessionId);
+                          showDeleteConfirmation(session.sessionId);
                         }}
                         className="p-2 hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400"
                       >
@@ -189,6 +200,17 @@ export default function ChatHistoryPage() {
           )}
         </div>
       </main>
+      
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={deleteSession}
+        message={t('pages.chatHistory.confirmDelete')}
+        confirmText={t('common.buttons.delete')}
+        cancelText={t('common.buttons.cancel')}
+        confirmVariant="destructive"
+      />
     </div>
   );
 }

@@ -173,3 +173,73 @@ html {
   display: none;
 }
 */
+
+/* Custom scrollbar for chat history list */
+.custom-scrollbar {
+  /* Firefox scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
+  /* Add padding to shorten scrollbar visually */
+  padding-right: 2px;
+}
+
+.custom-scrollbar:hover {
+  scrollbar-color: var(--scrollbar-thumb-color) transparent;
+}
+
+/* Webkit scrollbar for custom-scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 1.5px;
+  /* Control track length with margin */
+  margin: 8px 0;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 1.5px;
+  transition: background-color 0.3s ease;
+  /* Control minimum thumb length */
+  min-height: 20px;
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-color);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover-color);
+}
+
+/* Show scrollbar when actively scrolling */
+.custom-scrollbar::-webkit-scrollbar-thumb:active {
+  background: var(--scrollbar-thumb-hover-color);
+}
+
+/* Show scrollbar when scrolling class is present */
+.custom-scrollbar.scrolling::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-color);
+}
+
+.custom-scrollbar.scrolling {
+  scrollbar-color: var(--scrollbar-thumb-color) transparent;
+}
+
+/* Additional length control options */
+.custom-scrollbar.short::-webkit-scrollbar-track {
+  margin: 20px 0; /* Shorter scrollbar with more margin */
+}
+
+.custom-scrollbar.shorter::-webkit-scrollbar-track {
+  margin: 30px 0; /* Even shorter */
+}
+
+.custom-scrollbar.mini::-webkit-scrollbar-track {
+  margin: 40px 0; /* Mini scrollbar */
+}
