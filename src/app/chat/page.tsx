@@ -3,12 +3,13 @@ import {
   MessageSquarePlus,
   FileText,
   X,
+  History,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarMenu } from "@/components/ui/menu";
 import { useState, useRef, useEffect, Suspense, useMemo } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { LoadingDots } from "@/components/ui/loading-dots";
 import { MessageBubble } from "@/components/ui/message-bubble";
 import { FileOpener } from "@/components/ui/file-opener";
@@ -45,6 +46,7 @@ interface DocumentReference {
 // Create a wrapper component to use useSearchParams
 function ChatPageContent() {
   const { t } = useTranslations();
+  const router = useRouter();
   // Get URL parameters
   const searchParams = useSearchParams();
   const initialQuestion = searchParams.get('q') || "";
@@ -605,17 +607,31 @@ function ChatPageContent() {
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
       <SidebarMenu />
       
-      <div className="flex-1 flex flex-col h-full">
+      <main className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="p-8 pb-0">
+          <div className="max-w-3xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+                {t('pages.chat.title')}
+              </h2>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => router.push('/chat/history')}
+                title={t('pages.chatHistory.title')}
+                className="h-8 w-8"
+              >
+                <History className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+              </Button>
+            </div>
+            {NewChatButton}
+          </div>
+        </div>
         
         <div className="flex flex-1 overflow-hidden">
           {/* Main chat area */}
           <div className="flex flex-col h-full relative flex-1">
-            {/* Page title and control area */}
-            <div className="flex items-center px-8 py-4 bg-gray-100 dark:bg-gray-900">
-              <div className="flex items-center space-x-2">
-                <span className="text-lg font-semibold text-gray-800 dark:text-white">{t('pages.chat.title')}</span>
-              </div>
-            </div>
             {/* Message area - scrollable */}
             <div className="flex-1 overflow-y-auto px-8 py-6 pb-45" ref={chatContainerRef}>
               <div className={`mx-auto ${showRelatedDocs ? 'max-w-3xl' : 'max-w-3xl'}`}>
@@ -640,9 +656,6 @@ function ChatPageContent() {
             {/* Input area - floating at the bottom */}
             <div className="absolute bottom-0 left-0 right-0 px-8 py-4 bg-transparent dark:bg-transparent border-t-0 border-gray-200 dark:border-gray-800">
               <div className={`mx-auto ${showRelatedDocs ? 'max-w-3xl' : 'max-w-3xl'}`}>
-                <div className="mb-2 flex">
-                  {NewChatButton}
-                </div>
                 <SearchInputCard
                   value={input}
                   onChange={setInput}
@@ -669,7 +682,7 @@ function ChatPageContent() {
             </div>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }
