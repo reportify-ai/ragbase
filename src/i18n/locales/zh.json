@@ -240,7 +240,19 @@
       "home": "首页",
       "chat": "对话",
       "knowledgeBase": "知识库",
-      "settings": "设置"
+      "settings": "设置",
+      "chatHistory": "对话历史",
+      "justNow": "刚刚",
+      "hoursAgo": "{hours}小时前",
+      "yesterday": "昨天",
+      "daysAgo": "{days}天前",
+      "noHistory": "暂无历史记录",
+      "untitled": "未命名对话",
+      "editTitle": "编辑标题",
+      "deleteSession": "删除对话",
+      "confirmDeleteSession": "确定要删除这个对话吗？",
+      "updateTitleError": "更新标题失败，请重试",
+      "deleteSessionError": "删除对话失败，请重试"
     },
     "modal": {
       "confirmDelete": "确认删除",
