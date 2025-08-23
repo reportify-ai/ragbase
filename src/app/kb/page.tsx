@@ -22,6 +22,7 @@ import { z } from 'zod';
 import { KbModal } from "@/components/ui/kb-modal";
 import { FileStatus } from "@/components/ui/file-status";
 import { FileOpener } from "@/components/ui/file-opener";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useTranslations } from '@/i18n/hooks';
 
 interface KbItem {
@@ -93,6 +94,13 @@ export default function KbPage() {
   const [filePage, setFilePage] = useState(1);
   const [jumpPage, setJumpPage] = useState<string>('');
   const [deletingFile, setDeletingFile] = useState<number | null>(null);
+  
+  // State for delete confirmation dialogs
+  const [showDeleteKbDialog, setShowDeleteKbDialog] = useState(false);
+  const [kbToDelete, setKbToDelete] = useState<KbItem | null>(null);
+  const [showDeleteFileDialog, setShowDeleteFileDialog] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState<number | null>(null);
+  
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
   const AUTO_REFRESH_INTERVAL = 10000; // 10 seconds auto refresh once
   const pageSize = 5;
@@ -116,18 +124,28 @@ export default function KbPage() {
     fetchKbs();
   }, []);
 
-  async function handleDeleteKb(kb: KbItem) {
-    if (!window.confirm(t('pages.kb.confirmDeleteKb', { name: kb.name }))) return;
+  // Show delete kb confirmation dialog
+  function showDeleteKbConfirmation(kb: KbItem) {
+    setKbToDelete(kb);
+    setShowDeleteKbDialog(true);
+  }
+
+  // Delete knowledge base
+  async function handleDeleteKb() {
+    if (!kbToDelete) return;
+    
     try {
       const res = await fetch(`/api/kb`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: kb.id }),
+        body: JSON.stringify({ id: kbToDelete.id }),
       });
       if (!res.ok) throw new Error(t('api.errors.deleteFailed'));
       fetchKbs();
     } catch (e: any) {
       alert(e.message || t('api.errors.deleteFailed'));
+    } finally {
+      setKbToDelete(null);
     }
   }
 
@@ -170,17 +188,22 @@ export default function KbPage() {
     }
   }
 
-  async function handleDeleteFile(fileId: number) {
-    if (!window.confirm(t('pages.kb.confirmDeleteFile'))) {
-      return;
-    }
+  // Show delete file confirmation dialog
+  function showDeleteFileConfirmation(fileId: number) {
+    setFileToDelete(fileId);
+    setShowDeleteFileDialog(true);
+  }
+
+  // Delete file
+  async function handleDeleteFile() {
+    if (!fileToDelete) return;
     
-    setDeletingFile(fileId);
+    setDeletingFile(fileToDelete);
     try {
       const response = await fetch('/api/kb/files/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: fileId }),
+        body: JSON.stringify({ id: fileToDelete }),
       });
       
       if (!response.ok) {
@@ -195,6 +218,7 @@ export default function KbPage() {
       alert(`${t('api.errors.deleteFailed')}: ${error.message || t('api.errors.unknownError')}`);
     } finally {
       setDeletingFile(null);
+      setFileToDelete(null);
     }
   }
 
@@ -289,7 +313,7 @@ export default function KbPage() {
           ) : error ? (
             <div className="text-red-500 py-8 text-center">{error}</div>
           ) : (
-            <TopCards kbs={kbs} onEdit={handleEditKb} onDelete={handleDeleteKb} />
+            <TopCards kbs={kbs} onEdit={handleEditKb} onDelete={showDeleteKbConfirmation} />
           )}
           <Card className="mb-8">
             <CardHeader className="pb-2">
@@ -390,7 +414,7 @@ export default function KbPage() {
                               <Button 
                                 size="icon" 
                                 variant="ghost" 
-                                onClick={() => handleDeleteFile(f.id)}
+                                onClick={() => showDeleteFileConfirmation(f.id)}
                                 disabled={deletingFile === f.id}
                                 className={deletingFile === f.id ? "opacity-50 cursor-not-allowed" : ""}
                               >
@@ -440,6 +464,27 @@ export default function KbPage() {
           <KbModal open={modalOpen} kb={editingKb} onClose={() => setModalOpen(false)} onSave={handleSaveKb} />
         </div>
       </main>
+      
+      {/* Delete Confirmation Dialogs */}
+      <ConfirmDialog
+        isOpen={showDeleteKbDialog}
+        onClose={() => setShowDeleteKbDialog(false)}
+        onConfirm={handleDeleteKb}
+        message={kbToDelete ? t('pages.kb.confirmDeleteKb', { name: kbToDelete.name }) : ''}
+        confirmText={t('common.buttons.delete')}
+        cancelText={t('common.buttons.cancel')}
+        confirmVariant="destructive"
+      />
+      
+      <ConfirmDialog
+        isOpen={showDeleteFileDialog}
+        onClose={() => setShowDeleteFileDialog(false)}
+        onConfirm={handleDeleteFile}
+        message={t('pages.kb.confirmDeleteFile')}
+        confirmText={t('common.buttons.delete')}
+        cancelText={t('common.buttons.cancel')}
+        confirmVariant="destructive"
+      />
     </div>
   );
 } 
