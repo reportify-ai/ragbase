@@ -218,6 +218,22 @@
       "openai": "OpenAI",
       "setAsDefaultEmbeddingModel": "设为默认嵌入模型",
       "default": "默认"
+    },
+    "chatHistory": {
+      "title": "对话历史",
+      "newChat": "新建对话",
+      "loading": "加载中...",
+      "noHistory": "暂无对话历史",
+      "noHistoryDesc": "开始您的第一次对话吧",
+      "startNewChat": "开始新对话",
+      "untitled": "未命名对话",
+      "messageCount": "{count}条消息",
+      "justNow": "刚刚",
+      "hoursAgo": "{hours}小时前",
+      "yesterday": "昨天",
+      "daysAgo": "{days}天前",
+      "confirmDelete": "确定要删除这个对话吗？",
+      "deleteError": "删除失败，请重试"
     }
   },
   "components": {

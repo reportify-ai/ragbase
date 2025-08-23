@@ -194,6 +194,24 @@ function ChatPageContent() {
         .filter(kb => selectedKbs.includes(kb.name))
         .map(kb => kb.id);
       
+      // Initialize session in database for new conversations
+      if (isInitialQuestion) {
+        try {
+          await fetch("/api/chat/history", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              sessionId: sessionId,
+              kbIds: kbIds.length > 0 ? kbIds : undefined
+            }),
+          });
+        } catch (error) {
+          console.error("Error initializing session:", error);
+        }
+      }
+      
       // Send request to chat API
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -342,8 +360,24 @@ function ChatPageContent() {
             if (response.ok) {
               const data = await response.json();
               if (data.history && Array.isArray(data.history) && data.history.length > 0) {
+                // Convert database format to UI format if needed
+                const convertedHistory = data.history.map((msg: any) => ({
+                  role: msg.role === 'human' ? 'user' : msg.role as 'user' | 'ai',
+                  content: msg.content,
+                  relatedDocuments: msg.relatedDocuments
+                }));
+                
                 // Only set messages when the history is not empty
-                setMessages(data.history);
+                setMessages(convertedHistory);
+                console.log("Loaded chat history:", convertedHistory.length, "messages");
+                
+                // If there are messages with related documents, set up the document ID to name mapping
+                convertedHistory.forEach((msg: ChatMessage, index: number) => {
+                  if (msg.role === 'ai' && msg.relatedDocuments && msg.relatedDocuments.length > 0) {
+                    // No need to set selectedMessageIndex here, let user click to view documents
+                    console.log(`Message ${index} has ${msg.relatedDocuments.length} related documents`);
+                  }
+                });
               }
             }
           } catch (error) {

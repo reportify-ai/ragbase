@@ -43,6 +43,13 @@
       "when": 1751817232158,
       "tag": "0005_sleepy_dreadnoughts",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1755954284384,
+      "tag": "0006_cool_christian_walker",
+      "breakpoints": true
     }
   ]
 }
