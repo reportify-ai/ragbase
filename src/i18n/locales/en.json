@@ -242,7 +242,19 @@
       "home": "Home",
       "chat": "Chat",
       "knowledgeBase": "Knowledge Base",
-      "settings": "Settings"
+      "settings": "Settings",
+      "chatHistory": "History",
+      "justNow": "Just now",
+      "hoursAgo": "{hours} hours ago",
+      "yesterday": "Yesterday",
+      "daysAgo": "{days} days ago",
+      "noHistory": "No history",
+      "untitled": "Untitled",
+      "editTitle": "Edit Title",
+      "deleteSession": "Delete Chat",
+      "confirmDeleteSession": "Are you sure you want to delete this conversation?",
+      "updateTitleError": "Failed to update title, please try again",
+      "deleteSessionError": "Failed to delete conversation, please try again"
     },
     "modal": {
       "confirmDelete": "Confirm Delete",
