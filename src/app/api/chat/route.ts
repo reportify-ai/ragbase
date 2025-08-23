@@ -91,7 +91,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Create streaming response
-    const stream = await streamingChain.stream(message);
+    console.log("Creating stream for message:", message);
+    const langchainStream = await streamingChain.stream(message);
     
     // Create response headers
     const responseHeaders: Record<string, string> = {
@@ -100,74 +101,75 @@ export async function POST(req: NextRequest) {
       'X-Content-Type-Options': 'nosniff',
     };
     
-    // Create a new TransformStream to handle streaming response
+    // Variables to collect AI response and documents
     let fullAIResponse = '';
+    let retrievedDocuments: DocumentReference[] = [];
     
-    const transformStream = new TransformStream({
+    // Create a ReadableStream from LangChain stream
+    const readableStream = new ReadableStream({
       async start(controller) {
-        // Send document information at the start of the stream
-        if (chainWithDocs) {
-          try {
-            // Get retrieved documents, set timeout to avoid infinite waiting
-            const retrievedDocumentsPromise = Promise.race([
-              new Promise<DocumentReference[]>((resolve) => {
-                // Try to get documents, return if successful
-                const docs = chainWithDocs!.getRetrievedDocuments();
-                resolve(docs);
-              }),
-              new Promise<DocumentReference[]>((resolve) => {
-                // If no documents retrieved within 2 seconds, return empty array
-                setTimeout(() => {
-                  console.log("Document retrieval timed out, continuing without documents");
-                  resolve([]);
-                }, 2000);
-              })
-            ]);
-            
-            const retrievedDocuments = await retrievedDocumentsPromise;
-            console.log("Retrieved documents:", JSON.stringify(retrievedDocuments));
-            
-            if (retrievedDocuments.length > 0) {
-              // Create a special format message containing document information
-              const docsMessage = JSON.stringify({
-                type: 'documents',
-                documents: retrievedDocuments
-              });
-              console.log("Sending documents message:", docsMessage.substring(0, 100) + "...");
-              // Send document information as the first message
-              controller.enqueue(new TextEncoder().encode(`${docsMessage}\n---\n`));
-            } else {
-              console.log("No documents to send");
+        try {
+          // Send document information at the start of the stream
+          if (chainWithDocs) {
+            try {
+              // Get retrieved documents
+              retrievedDocuments = chainWithDocs.getRetrievedDocuments();
+              console.log("Retrieved documents:", retrievedDocuments.length);
+              
+              if (retrievedDocuments.length > 0) {
+                // Create a special format message containing document information
+                const docsMessage = JSON.stringify({
+                  type: 'documents',
+                  documents: retrievedDocuments
+                });
+                console.log("Sending documents message");
+                // Send document information as the first message
+                controller.enqueue(new TextEncoder().encode(`${docsMessage}\n---\n`));
+              }
+            } catch (error) {
+              console.error("Error retrieving documents:", error);
             }
-          } catch (error) {
-            console.error("Error retrieving documents:", error);
-            console.log("Continuing without documents");
           }
-        }
-      },
-      transform(chunk, controller) {
-        // Pass chunk directly to output
-        controller.enqueue(chunk);
-        
-        // Only try to decode if chunk is a valid ArrayBuffer or ArrayBufferView
-        if (chunk instanceof Uint8Array) {
-          try {
-            const text = new TextDecoder().decode(chunk);
-            fullAIResponse += text;
-          } catch (error) {
-            console.error("Error decoding chunk:", error);
+          
+          // Process LangChain stream
+          console.log("Starting to process LangChain stream");
+          for await (const chunk of langchainStream) {
+            console.log("LangChain chunk:", {
+              type: typeof chunk,
+              value: typeof chunk === 'string' ? chunk.substring(0, 50) + "..." : chunk
+            });
+            
+            // LangChain StringOutputParser should return strings
+            if (typeof chunk === 'string') {
+              fullAIResponse += chunk;
+              // Encode string to Uint8Array and send to client
+              controller.enqueue(new TextEncoder().encode(chunk));
+            }
           }
+          
+          console.log("LangChain stream completed, total response length:", fullAIResponse.length);
+          
+          // Save to history after stream completes
+          const aiMessage: ChatMessage & { relatedDocuments?: DocumentReference[] } = {
+            role: "ai",
+            content: fullAIResponse,
+            ...(retrievedDocuments.length > 0 && { relatedDocuments: retrievedDocuments })
+          };
+          
+          console.log("Saving AI message with content length:", aiMessage.content.length);
+          addMessageToHistory(sessionId, aiMessage);
+          
+        } catch (error) {
+          console.error("Error in stream processing:", error);
+          controller.error(error);
+        } finally {
+          controller.close();
         }
-      },
-      flush(controller) {
-        // When stream ends, add complete response to history
-        console.log("Stream ended, saving response to history");
-        addMessageToHistory(sessionId, { role: "ai", content: fullAIResponse });
       }
     });
 
     // Create response
-    const response = new Response(stream.pipeThrough(transformStream), {
+    const response = new Response(readableStream, {
       headers: responseHeaders,
     });
 

@@ -187,7 +187,7 @@ export default function HomePage() {
                 <Button
                   variant="link"
                   className="p-0 mt-3 h-auto text-left justify-start -ml-3 text-black dark:text-white"
-                  onClick={() => router.push('/chat')}
+                  onClick={() => router.push('/chat/history')}
                 >
                   {t('pages.home.viewHistory')} <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>

@@ -93,6 +93,27 @@ export const embeddings = sqliteTable('embeddings', {
   created_at: text('created_at').default(sql`CURRENT_TIMESTAMP`),
 });
 
+export const chatSessions = sqliteTable('chat_sessions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  sessionId: text('session_id').notNull().unique(),
+  title: text('title'),
+  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
+  messageCount: integer('message_count').notNull().default(0),
+  kbIds: text('kb_ids'), // JSON format
+  isArchived: integer('is_archived', { mode: 'boolean' }).notNull().default(false),
+});
+
+export const chatMessages = sqliteTable('chat_messages', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  sessionId: text('session_id').notNull(),
+  role: text('role').notNull(),
+  content: text('content').notNull(),
+  messageIndex: integer('message_index').notNull(),
+  relatedDocuments: text('related_documents'), // JSON format
+  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+});
+
 export enum FileStatus {
   PENDING = 0,      // Pending
   PARSING = 1,      // Parsing

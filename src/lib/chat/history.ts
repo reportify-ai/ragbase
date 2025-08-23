@@ -1,27 +1,111 @@
 import { ChatMessage } from "./service";
+import { 
+  getChatSession, 
+  createChatSession, 
+  getChatMessages, 
+  saveChatMessage, 
+  deleteChatSession as deleteChatSessionFromDB,
+  generateChatTitle,
+  updateChatSessionTitle
+} from "./db";
 
-// Use memory to store chat history
+// Use memory to store chat history for backward compatibility
 // Key is session ID, value is array of chat messages
 const chatHistories: Map<string, ChatMessage[]> = new Map();
 
 /**
- * Get chat history
+ * Get chat history - now supports both memory and database
  * @param sessionId session ID
  * @returns array of chat messages
  */
 export function getChatHistory(sessionId: string): ChatMessage[] {
-  return chatHistories.get(sessionId) || [];
+  // First try memory cache
+  const memoryHistory = chatHistories.get(sessionId);
+  if (memoryHistory && memoryHistory.length > 0) {
+    return memoryHistory;
+  }
+  
+  // If not in memory, try to load from database
+  // Note: This is a sync function but we need async DB call
+  // We'll handle this in the updated API calls
+  return [];
 }
 
 /**
- * Add message to chat history
+ * Get chat history from database (async version)
  * @param sessionId session ID
- * @param message chat message
+ * @returns array of chat messages
  */
-export function addMessageToHistory(sessionId: string, message: ChatMessage): void {
-  const history = getChatHistory(sessionId);
-  history.push(message);
+export async function getChatHistoryAsync(sessionId: string): Promise<ChatMessage[]> {
+  // First try memory cache
+  const memoryHistory = chatHistories.get(sessionId);
+  if (memoryHistory && memoryHistory.length > 0) {
+    return memoryHistory;
+  }
+  
+  // Load from database
+  try {
+    const dbMessages = await getChatMessages(sessionId);
+    if (dbMessages.length > 0) {
+      // Cache in memory for faster access
+      chatHistories.set(sessionId, dbMessages);
+      return dbMessages;
+    }
+  } catch (error) {
+    console.error('Error loading chat history from database:', error);
+  }
+  
+  return [];
+}
+
+/**
+ * Add message to chat history - now supports both memory and database
+ * @param sessionId session ID
+ * @param message chat message (can include relatedDocuments)
+ */
+export function addMessageToHistory(sessionId: string, message: ChatMessage | (ChatMessage & { relatedDocuments?: any[] })): void {
+  // Add to memory cache
+  const history = chatHistories.get(sessionId) || [];
+  history.push(message as ChatMessage);
   chatHistories.set(sessionId, history);
+  
+  // Save to database asynchronously
+  saveToDatabaseAsync(sessionId, message as ChatMessage, history.length - 1);
+}
+
+/**
+ * Save message to database asynchronously
+ */
+async function saveToDatabaseAsync(sessionId: string, message: ChatMessage, messageIndex: number): Promise<void> {
+  try {
+    // Ensure session exists
+    let session = await getChatSession(sessionId);
+    if (!session) {
+      session = await createChatSession(sessionId);
+    }
+    
+    // Save message
+    await saveChatMessage(sessionId, message, messageIndex);
+    
+    // Generate title for first AI response
+    if (message.role === 'ai' && messageIndex === 1) {
+      const history = chatHistories.get(sessionId) || [];
+      if (history.length >= 2) {
+        const firstUserMessage = history[0];
+        const firstAIMessage = history[1];
+        
+        const title = await generateChatTitle(
+          sessionId, 
+          firstUserMessage.content, 
+          firstAIMessage.content
+        );
+        
+        await updateChatSessionTitle(sessionId, title);
+      }
+    }
+  } catch (error) {
+    console.error('Error saving to database:', error);
+  }
 }
 
 /**
@@ -30,12 +114,33 @@ export function addMessageToHistory(sessionId: string, message: ChatMessage): vo
  */
 export function clearChatHistory(sessionId: string): void {
   chatHistories.delete(sessionId);
+  
+  // Also delete from database asynchronously
+  deleteChatSessionFromDB(sessionId).catch(error => {
+    console.error('Error deleting from database:', error);
+  });
 }
 
 /**
- * Get all session IDs
+ * Get all session IDs from memory
  * @returns array of session IDs
  */
 export function getAllSessionIds(): string[] {
   return Array.from(chatHistories.keys());
+}
+
+/**
+ * Initialize session in database if not exists
+ * @param sessionId session ID
+ * @param kbIds knowledge base IDs
+ */
+export async function initializeSession(sessionId: string, kbIds?: number[]): Promise<void> {
+  try {
+    const existingSession = await getChatSession(sessionId);
+    if (!existingSession) {
+      await createChatSession(sessionId, kbIds);
+    }
+  } catch (error) {
+    console.error('Error initializing session:', error);
+  }
 } 

@@ -219,6 +219,22 @@
       "openai": "OpenAI",
       "setAsDefaultEmbeddingModel": "Set as default embedding model",
       "default": "Default"      
+    },
+    "chatHistory": {
+      "title": "Chat History",
+      "newChat": "New Chat",
+      "loading": "Loading...",
+      "noHistory": "No chat history",
+      "noHistoryDesc": "Start your first conversation",
+      "startNewChat": "Start New Chat",
+      "untitled": "Untitled Chat",
+      "messageCount": "{count} messages",
+      "justNow": "Just now",
+      "hoursAgo": "{hours} hours ago",
+      "yesterday": "Yesterday",
+      "daysAgo": "{days} days ago",
+      "confirmDelete": "Are you sure you want to delete this conversation?",
+      "deleteError": "Failed to delete, please try again"
     }
   },
   "components": {

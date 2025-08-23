@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getChatHistory, getAllSessionIds } from '../../../../lib/chat/history';
+import { getChatHistoryAsync, getAllSessionIds, initializeSession } from '../../../../lib/chat/history';
 
 // Explicitly specify Node.js runtime
 export const runtime = 'nodejs';
@@ -19,8 +19,10 @@ export async function GET(req: NextRequest) {
       );
     }
     
-    // Get chat history
-    const history = getChatHistory(sessionId);
+    // Get chat history asynchronously (supports database)
+    const history = await getChatHistoryAsync(sessionId);
+    
+    console.log("Returning", history.length, "history messages for session");
     
     return NextResponse.json({ history });
   } catch (error) {
@@ -33,18 +35,27 @@ export async function GET(req: NextRequest) {
 }
 
 /**
- * Get all session IDs
+ * Initialize session in database
  */
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
-    // Get all session IDs
-    const sessionIds = getAllSessionIds();
+    const { sessionId, kbIds } = await req.json();
     
-    return NextResponse.json({ sessionIds });
+    if (!sessionId) {
+      return NextResponse.json(
+        { error: "Session ID cannot be empty" },
+        { status: 400 }
+      );
+    }
+    
+    // Initialize session in database
+    await initializeSession(sessionId, kbIds);
+    
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Get all session IDs error:", error);
+    console.error("Initialize session error:", error);
     return NextResponse.json(
-      { error: `Failed to get all session IDs: ${error instanceof Error ? error.message : 'Unknown error'}` },
+      { error: `Failed to initialize session: ${error instanceof Error ? error.message : 'Unknown error'}` },
       { status: 500 }
     );
   }
