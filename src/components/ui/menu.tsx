@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Home,
   MessageCircle,
@@ -70,11 +70,6 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
     },
   ];
 
-  // Load chat sessions
-  useEffect(() => {
-    loadChatSessions();
-  }, []);
-
   const loadChatSessions = async () => {
     try {
       setIsLoadingHistory(true);
@@ -91,6 +86,57 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
       setIsLoadingHistory(false);
     }
   };
+
+  // Add new session to the top of the list
+  const addNewSession = useCallback((session: ChatSession) => {
+    console.log("Adding new session to menu:", session.title);
+    setChatSessions(prev => [session, ...prev]);
+  }, []);
+
+  // Update session title in the list
+  const updateSessionInList = useCallback((sessionId: string, newTitle: string) => {
+    setChatSessions(prev => prev.map(session => 
+      session.sessionId === sessionId 
+        ? { ...session, title: newTitle, updatedAt: new Date().toISOString() }
+        : session
+    ));
+  }, []);
+
+  // Load chat sessions and set up event listeners
+  useEffect(() => {
+    loadChatSessions();
+    
+    // Listen for custom events to refresh history
+    const handleRefreshHistory = () => {
+      loadChatSessions();
+    };
+    
+    // Listen for new session events
+    const handleNewSession = (event: CustomEvent) => {
+      console.log("Received newChatSession event:", event.detail);
+      const newSession = event.detail;
+      addNewSession(newSession);
+    };
+    
+    // Listen for title update events
+    const handleTitleUpdate = (event: CustomEvent) => {
+      console.log("Received updateChatTitle event:", event.detail);
+      const { sessionId, title } = event.detail;
+      updateSessionInList(sessionId, title);
+    };
+    
+    window.addEventListener('refreshChatHistory', handleRefreshHistory);
+    window.addEventListener('newChatSession', handleNewSession as EventListener);
+    window.addEventListener('updateChatTitle', handleTitleUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('refreshChatHistory', handleRefreshHistory);
+      window.removeEventListener('newChatSession', handleNewSession as EventListener);
+      window.removeEventListener('updateChatTitle', handleTitleUpdate as EventListener);
+    };
+  }, [addNewSession, updateSessionInList]);
+
+  // Note: Global functions are now replaced with custom events for better reliability
 
   // Update session title
   const updateSessionTitle = async (sessionId: string, newTitle: string) => {
@@ -291,7 +337,7 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
       {/* Chat History Section */}
       <div className="flex-1 flex flex-col min-h-0 mt-2">
         {/* Chat History Header */}
-        <div className="px-3 flex-shrink-0 ml-2 mb-1">
+        <div className="px-3 flex-shrink-0 ml-2 mb-2">
           <div className="flex items-center space-x-2">
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-300">
               {t('components.menu.chatHistory')}

@@ -87,6 +87,13 @@ function ChatPageContent() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Helper function to emit menu update events
+  const emitMenuEvent = (eventType: string, data: any) => {
+    console.log(`Emitting ${eventType} event:`, data);
+    const event = new CustomEvent(eventType, { detail: data });
+    window.dispatchEvent(event);
+  };
   
   // Load knowledge base list - no longer depends on initialKbIds
   useEffect(() => {
@@ -159,6 +166,10 @@ function ChatPageContent() {
   // Unified function to handle sending messages
   const handleSendMessage = async (messageText: string, isInitialQuestion = false) => {
     console.log("handleSendMessage called", messageText, isInitialQuestion);
+    
+    // Check if this is actually the first message for a new session
+    const isActuallyFirstMessage = isInitialQuestion || messages.length === 0;
+    console.log("Is actually first message:", isActuallyFirstMessage, "Messages count:", messages.length);
     if (!messageText.trim() || isLoading) return;
     
     // Prevent duplicate processing of the same message
@@ -181,8 +192,8 @@ function ChatPageContent() {
       // Add user message to UI
       const userMessage: ChatMessage = { role: "user", content: messageText };
       
-      // If it's the initial question, set the message array directly; otherwise, append to the existing message
-      if (isInitialQuestion) {
+      // If it's the first message, set the message array directly; otherwise, append to the existing message
+      if (isActuallyFirstMessage) {
         setMessages([userMessage, { role: "ai", content: "", relatedDocuments: [] }]);
       } else {
         // Add user message and empty AI message at once
@@ -194,21 +205,63 @@ function ChatPageContent() {
         .filter(kb => selectedKbs.includes(kb.name))
         .map(kb => kb.id);
       
-      // Initialize session in database for new conversations
-      if (isInitialQuestion) {
+      // For new conversations, generate title and create session immediately
+      if (isActuallyFirstMessage) {
         try {
-          await fetch("/api/chat/history", {
+          console.log("First message detected, generating title and creating session");
+          
+          // Step 1: Generate title based on user message
+          const titleResponse = await fetch("/api/chat/generate-title", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
               sessionId: sessionId,
-              kbIds: kbIds.length > 0 ? kbIds : undefined
+              userMessage: messageText
             }),
           });
+          
+          let generatedTitle = "New Conversation"; // Fallback
+          if (titleResponse.ok) {
+            const titleData = await titleResponse.json();
+            generatedTitle = titleData.title || generatedTitle;
+            console.log("Generated title:", generatedTitle);
+          } else {
+            console.error("Failed to generate title, using fallback");
+          }
+          
+          // Step 2: Initialize session in database with title
+          const initResponse = await fetch("/api/chat/history", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              sessionId: sessionId,
+              kbIds: kbIds.length > 0 ? kbIds : undefined,
+              title: generatedTitle // Include title in session creation
+            }),
+          });
+          
+          if (initResponse.ok) {
+            // Step 3: Add to menu immediately with generated title
+            const newSession = {
+              id: Date.now(),
+              sessionId: sessionId,
+              title: generatedTitle,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              messageCount: 0,
+              kbIds: kbIds.length > 0 ? kbIds : undefined,
+              isArchived: false
+            };
+            
+            // Emit event to add new session to menu
+            emitMenuEvent('newChatSession', newSession);
+          }
         } catch (error) {
-          console.error("Error initializing session:", error);
+          console.error("Error creating session with title:", error);
         }
       }
       
@@ -378,10 +431,18 @@ function ChatPageContent() {
                     console.log(`Message ${index} has ${msg.relatedDocuments.length} related documents`);
                   }
                 });
+              } else {
+                // No history found, this is a new session - just initialize empty page
+                console.log("No history found, waiting for user to start conversation");
               }
+            } else {
+              // Failed to load history, just initialize empty page
+              console.log("Failed to load history, waiting for user to start conversation");
             }
           } catch (error) {
             console.error("Failed to load chat history:", error);
+            // Just initialize empty page
+            console.log("Error loading history, waiting for user to start conversation");
           }
         }
       };

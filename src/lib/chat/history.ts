@@ -5,7 +5,6 @@ import {
   getChatMessages, 
   saveChatMessage, 
   deleteChatSession as deleteChatSessionFromDB,
-  generateChatTitle,
   updateChatSessionTitle
 } from "./db";
 
@@ -87,22 +86,8 @@ async function saveToDatabaseAsync(sessionId: string, message: ChatMessage, mess
     // Save message
     await saveChatMessage(sessionId, message, messageIndex);
     
-    // Generate title for first AI response
-    if (message.role === 'ai' && messageIndex === 1) {
-      const history = chatHistories.get(sessionId) || [];
-      if (history.length >= 2) {
-        const firstUserMessage = history[0];
-        const firstAIMessage = history[1];
-        
-        const title = await generateChatTitle(
-          sessionId, 
-          firstUserMessage.content, 
-          firstAIMessage.content
-        );
-        
-        await updateChatSessionTitle(sessionId, title);
-      }
-    }
+    // Title generation is now handled only when user sends first message
+    // No longer generate title after AI response to avoid duplicates
   } catch (error) {
     console.error('Error saving to database:', error);
   }
@@ -134,11 +119,11 @@ export function getAllSessionIds(): string[] {
  * @param sessionId session ID
  * @param kbIds knowledge base IDs
  */
-export async function initializeSession(sessionId: string, kbIds?: number[]): Promise<void> {
+export async function initializeSession(sessionId: string, kbIds?: number[], title?: string): Promise<void> {
   try {
     const existingSession = await getChatSession(sessionId);
     if (!existingSession) {
-      await createChatSession(sessionId, kbIds);
+      await createChatSession(sessionId, kbIds, title);
     }
   } catch (error) {
     console.error('Error initializing session:', error);
