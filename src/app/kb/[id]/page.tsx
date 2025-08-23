@@ -12,6 +12,7 @@ import { z } from "zod";
 import { KbModal } from "@/components/ui/kb-modal";
 import { FileStatus } from "@/components/ui/file-status";
 import { FileOpener } from "@/components/ui/file-opener";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useTranslations } from '@/i18n/hooks';
 
 interface KbItem {
@@ -82,6 +83,12 @@ export default function KbDetailPage() {
   
   const [retryingFile, setRetryingFile] = useState<number | null>(null);
   const [deletingFile, setDeletingFile] = useState<number | null>(null);
+  
+  // State for delete confirmation dialogs
+  const [showDeleteSyncDirDialog, setShowDeleteSyncDirDialog] = useState(false);
+  const [syncDirToDelete, setSyncDirToDelete] = useState<any>(null);
+  const [showDeleteFileDialog, setShowDeleteFileDialog] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState<number | null>(null);
 
   useEffect(() => {
     if (kbId) {
@@ -283,6 +290,40 @@ export default function KbDetailPage() {
       .finally(() => setEditLoading(false));
   }
 
+  // Show delete sync directory confirmation dialog
+  function showDeleteSyncDirConfirmation(dir: any) {
+    setSyncDirToDelete(dir);
+    setShowDeleteSyncDirDialog(true);
+  }
+
+  // Delete sync directory
+  async function handleDeleteSyncDir() {
+    if (!syncDirToDelete) return;
+    
+    try {
+      const res = await fetch('/api/kb/sync-directories', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: syncDirToDelete.id })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || t('api.errors.deleteFailed'));
+      
+      // Refresh data after successful deletion
+      await refreshData();
+    } catch (e: any) {
+      alert(e.message || t('api.errors.deleteFailed'));
+    } finally {
+      setSyncDirToDelete(null);
+    }
+  }
+
+  // Show delete file confirmation dialog
+  function showDeleteFileConfirmation(fileId: number) {
+    setFileToDelete(fileId);
+    setShowDeleteFileDialog(true);
+  }
+
   async function handleRetryFile(fileId: number) {
     if (retryingFile) return;
     setRetryingFile(fileId);
@@ -310,18 +351,16 @@ export default function KbDetailPage() {
     }
   }
 
-  async function handleDeleteFile(fileId: number) {
-    if (deletingFile) return;
-    if (!window.confirm(t('pages.kb.confirmDeleteFile'))) {
-      return;
-    }
+  // Delete file
+  async function handleDeleteFile() {
+    if (!fileToDelete) return;
     
-    setDeletingFile(fileId);
+    setDeletingFile(fileToDelete);
     try {
       const response = await fetch('/api/kb/files/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: fileId }),
+        body: JSON.stringify({ id: fileToDelete }),
       });
       
       if (!response.ok) {
@@ -336,6 +375,7 @@ export default function KbDetailPage() {
       alert(`${t('api.errors.deleteFailed')}: ${error.message || t('api.errors.unknownError')}`);
     } finally {
       setDeletingFile(null);
+      setFileToDelete(null);
     }
   }
 
@@ -451,7 +491,7 @@ export default function KbDetailPage() {
                               <Button 
                                 size="icon" 
                                 variant="ghost" 
-                                onClick={() => handleDeleteFile(f.id)}
+                                onClick={() => showDeleteFileConfirmation(f.id)}
                                 disabled={deletingFile === f.id}
                                 className={deletingFile === f.id ? "opacity-50 cursor-not-allowed" : "hover:cursor-pointer"}
                               >
@@ -542,24 +582,7 @@ export default function KbDetailPage() {
                         size="sm" 
                         variant="destructive" 
                         className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:cursor-pointer"
-                        onClick={async () => {
-                          if (!window.confirm(t('pages.kbSync.confirmDeleteSyncDir', { name: dir.name }))) return;
-                          
-                          try {
-                            const res = await fetch('/api/kb/sync-directories', {
-                              method: 'DELETE',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ id: dir.id })
-                            });
-                            const data = await res.json();
-                            if (!res.ok) throw new Error(data.error || t('api.errors.deleteFailed'));
-                            
-                            // Refresh data after successful deletion
-                            await refreshData();
-                          } catch (e: any) {
-                            alert(e.message || t('api.errors.deleteFailed'));
-                          }
-                        }}
+                        onClick={() => showDeleteSyncDirConfirmation(dir)}
                       >
                         {t('common.buttons.delete')}
                       </Button>
@@ -677,6 +700,27 @@ export default function KbDetailPage() {
           />
         </div>
       </main>
+      
+      {/* Delete Confirmation Dialogs */}
+      <ConfirmDialog
+        isOpen={showDeleteSyncDirDialog}
+        onClose={() => setShowDeleteSyncDirDialog(false)}
+        onConfirm={handleDeleteSyncDir}
+        message={syncDirToDelete ? t('pages.kbSync.confirmDeleteSyncDir', { name: syncDirToDelete.name }) : ''}
+        confirmText={t('common.buttons.delete')}
+        cancelText={t('common.buttons.cancel')}
+        confirmVariant="destructive"
+      />
+      
+      <ConfirmDialog
+        isOpen={showDeleteFileDialog}
+        onClose={() => setShowDeleteFileDialog(false)}
+        onConfirm={handleDeleteFile}
+        message={t('pages.kb.confirmDeleteFile')}
+        confirmText={t('common.buttons.delete')}
+        cancelText={t('common.buttons.cancel')}
+        confirmVariant="destructive"
+      />
     </div>
   );
 }
