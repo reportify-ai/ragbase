@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    const { sessionId, kbIds } = await req.json();
+    const { sessionId, kbIds, title } = await req.json();
     
     if (!sessionId) {
       return NextResponse.json(
@@ -48,8 +48,8 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    // Initialize session in database
-    await initializeSession(sessionId, kbIds);
+    // Initialize session in database with optional title
+    await initializeSession(sessionId, kbIds, title);
     
     return NextResponse.json({ success: true });
   } catch (error) {

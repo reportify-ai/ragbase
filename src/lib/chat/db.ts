@@ -32,9 +32,10 @@ export interface StoredChatMessage {
 /**
  * Create a new chat session
  */
-export async function createChatSession(sessionId: string, kbIds?: number[]): Promise<ChatSession> {
+export async function createChatSession(sessionId: string, kbIds?: number[], title?: string): Promise<ChatSession> {
   const result = await db.insert(chatSessions).values({
     sessionId,
+    title: title || undefined,
     kbIds: kbIds ? JSON.stringify(kbIds) : null,
   }).returning();
   
@@ -169,48 +170,5 @@ export async function getChatMessages(sessionId: string): Promise<ChatMessage[]>
   }));
 }
 
-/**
- * Generate title for chat session using AI
- */
-export async function generateChatTitle(sessionId: string, firstMessage: string, firstResponse: string): Promise<string> {
-  try {
-    // Get default model for title generation
-    const { getDefaultModel } = await import('../../app/api/models/db');
-    const { createChatModel } = await import('./model');
-    
-    const modelConfig = await getDefaultModel();
-    if (!modelConfig) {
-      return firstMessage.substring(0, 30) + '...';
-    }
-    
-    const model = createChatModel({
-      provider: modelConfig.provider,
-      modelName: modelConfig.name,
-      apiUrl: modelConfig.apiUrl,
-      apiKey: modelConfig.apiKey || undefined,
-      temperature: 0.1, // Use low temperature for consistent titles
-      topP: 0.9,
-      maxTokens: 50, // Limit tokens for short titles
-    });
-    
-    const prompt = `Based on this conversation, generate a concise title (maximum 6 words):
-
-User: ${firstMessage.substring(0, 200)}
-AI: ${firstResponse.substring(0, 200)}
-
-Title:`;
-    
-    const response = await model.invoke(prompt);
-    const title = response.content.toString().trim().replace(/^["']|["']$/g, '');
-    
-    // Fallback if title is too long or empty
-    if (!title || title.length > 50) {
-      return firstMessage.substring(0, 30) + '...';
-    }
-    
-    return title;
-  } catch (error) {
-    console.error('Error generating title:', error);
-    return firstMessage.substring(0, 30) + '...';
-  }
-}
+// Note: Title generation is now handled exclusively by /api/chat/generate-title
+// to avoid duplication and ensure consistent behavior with reasoning models
