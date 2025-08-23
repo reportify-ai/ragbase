@@ -222,6 +222,7 @@
     },
     "chatHistory": {
       "title": "Chat History",
+      "conversationList": "Conversation List",
       "newChat": "New Chat",
       "loading": "Loading...",
       "noHistory": "No chat history",
