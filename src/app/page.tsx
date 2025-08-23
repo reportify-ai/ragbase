@@ -176,7 +176,7 @@ export default function HomePage() {
 
           {/* Info Cards */}
           <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
+            <Card className="gap-2">
               <CardHeader>
                 <CardTitle>{t('pages.home.recentChats')}</CardTitle>
               </CardHeader>
@@ -186,14 +186,14 @@ export default function HomePage() {
                 </p>
                 <Button
                   variant="link"
-                  className="p-0 mt-3 h-auto text-black dark:text-white"
+                  className="p-0 mt-3 h-auto text-left justify-start -ml-3 text-black dark:text-white"
                   onClick={() => router.push('/chat')}
                 >
                   {t('pages.home.viewHistory')} <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="gap-2">
               <CardHeader>
                 <CardTitle>{t('pages.home.knowledgeBaseManagement')}</CardTitle>
               </CardHeader>
@@ -203,7 +203,7 @@ export default function HomePage() {
                 </p>
                 <Button asChild
                   variant="link"
-                  className="p-0 mt-3 h-auto text-black dark:text-white"
+                  className="p-0 mt-3 h-auto text-left justify-start -ml-3 text-black dark:text-white"
                 >
                   <Link href="/kb">{t('pages.home.manageKnowledgeBase')} <ArrowRight className="w-4 h-4 ml-1" /></Link>
                 </Button>
