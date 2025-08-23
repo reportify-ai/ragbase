@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Home,
   MessageCircle,
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { v4 as uuidv4 } from "uuid";
 import { useTranslations } from '@/i18n/hooks';
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface ChatSession {
   id: number;
@@ -50,6 +51,13 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
+  
+  // State for delete confirmation dialog
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
+  
+  // Ref for scroll container
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   const menu = [
     {
@@ -136,6 +144,34 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
     };
   }, [addNewSession, updateSessionInList]);
 
+  // Handle scrollbar visibility
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
+
+    let scrollTimeout: NodeJS.Timeout;
+
+    const handleScroll = () => {
+      // Add scrolling class to show scrollbar
+      scrollContainer.classList.add('scrolling');
+      
+      // Clear existing timeout
+      clearTimeout(scrollTimeout);
+      
+      // Hide scrollbar after scroll stops
+      scrollTimeout = setTimeout(() => {
+        scrollContainer.classList.remove('scrolling');
+      }, 1000); // Hide after 1 second of no scrolling
+    };
+
+    scrollContainer.addEventListener('scroll', handleScroll);
+    
+    return () => {
+      scrollContainer.removeEventListener('scroll', handleScroll);
+      clearTimeout(scrollTimeout);
+    };
+  }, []);
+
   // Note: Global functions are now replaced with custom events for better reliability
 
   // Update session title
@@ -171,11 +207,15 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
     }
   };
 
+  // Show delete confirmation dialog
+  const showDeleteConfirmation = (sessionId: string) => {
+    setSessionToDelete(sessionId);
+    setShowDeleteDialog(true);
+  };
+
   // Delete session
-  const deleteSession = async (sessionId: string) => {
-    if (!confirm(t('components.menu.confirmDeleteSession'))) {
-      return;
-    }
+  const deleteSession = async () => {
+    if (!sessionToDelete) return;
 
     try {
       const response = await fetch('/api/chat/sessions', {
@@ -185,19 +225,21 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
         },
         body: JSON.stringify({
           action: 'delete',
-          sessionId,
+          sessionId: sessionToDelete,
         }),
       });
 
       if (response.ok) {
         // Remove from local state
-        setChatSessions(prev => prev.filter(s => s.sessionId !== sessionId));
+        setChatSessions(prev => prev.filter(s => s.sessionId !== sessionToDelete));
       } else {
         alert(t('components.menu.deleteSessionError'));
       }
     } catch (error) {
       console.error("Error deleting session:", error);
       alert(t('components.menu.deleteSessionError'));
+    } finally {
+      setSessionToDelete(null);
     }
   };
 
@@ -346,7 +388,7 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
         </div>
         
         {/* Chat History List */}
-        <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto space-y-1 min-h-0 custom-scrollbar short">
           {isLoadingHistory ? (
             // Loading skeleton
             Array.from({ length: 3 }).map((_, index) => (
@@ -442,7 +484,7 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
                       <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
-                          deleteSession(session.sessionId);
+                          showDeleteConfirmation(session.sessionId);
                         }}
                         className="text-red-600 dark:text-red-400"
                       >
@@ -470,6 +512,17 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
           </Link>
         </Button>
       </div>
+      
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={deleteSession}
+        message={t('components.menu.confirmDeleteSession')}
+        confirmText={t('common.buttons.delete')}
+        cancelText={t('common.buttons.cancel')}
+        confirmVariant="destructive"
+      />
     </aside>
   );
 } 
