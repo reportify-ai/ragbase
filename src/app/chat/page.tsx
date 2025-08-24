@@ -451,9 +451,6 @@ function ChatPageContent() {
     setShowRelatedDocs(false);
     setIsLoading(false);
     
-    // Reset knowledge base selection for new chat sessions
-    setSelectedKbs([]);
-    
     // Reset scroll tracking
     prevMessageCountRef.current = 0;
     isLoadingHistoryRef.current = false;
@@ -462,6 +459,34 @@ function ChatPageContent() {
       // If there is an initial question and the knowledge base has been loaded
       if (initialQuestion) {
         console.log("Processing initial question:", initialQuestion);
+        // This is a new session with initial question
+        // Check if we have knowledge base parameters from URL (e.g., from homepage)
+        const initialKbIds = initialKbIdsRef.current;
+        if (initialKbIds.length > 0 && !initialKbIds.includes('')) {
+          // We have knowledge base IDs from URL, but only process if kbIdToNameMap is ready
+          if (Object.keys(kbIdToNameMap).length > 0) {
+            // Map knowledge base IDs to names
+            const selectedNames = initialKbIds
+              .map(id => kbIdToNameMap[parseInt(id, 10)])
+              .filter(Boolean);
+            
+            if (selectedNames.length > 0) {
+              console.log("Setting knowledge bases from URL parameters:", selectedNames);
+              setSelectedKbs(selectedNames);
+            } else {
+              // No matching knowledge bases found, clear selection
+              setSelectedKbs([]);
+            }
+          } else {
+            // kbIdToNameMap not ready yet, will be processed in next effect run
+            console.log("kbIdToNameMap not ready, waiting...");
+            return; // Don't proceed with message handling yet
+          }
+        } else {
+          // No knowledge base parameters from URL, clear selection
+          setSelectedKbs([]);
+        }
+        
         // Use the unified handleSendMessage function to process the initial question
         await handleSendMessage(initialQuestion, true);
       } 
@@ -473,6 +498,9 @@ function ChatPageContent() {
           if (response.ok) {
             const data = await response.json();
             if (data.history && Array.isArray(data.history) && data.history.length > 0) {
+              // This is an existing session with history
+              console.log("Found existing session with history");
+              
               // Convert database format to UI format if needed
               const convertedHistory = data.history.map((msg: any) => ({
                 role: msg.role === 'human' ? 'user' : msg.role as 'user' | 'ai',
@@ -480,10 +508,30 @@ function ChatPageContent() {
                 relatedDocuments: msg.relatedDocuments
               }));
               
+              // Restore knowledge base selection from session data
+              if (data.session && data.session.kbIds && Array.isArray(data.session.kbIds)) {
+                console.log("Restoring knowledge base selection:", data.session.kbIds);
+                // Map kbIds to knowledge base names
+                const kbNames = data.session.kbIds
+                  .map((id: number) => kbIdToNameMap[id])
+                  .filter(Boolean);
+                
+                if (kbNames.length > 0) {
+                  setSelectedKbs(kbNames);
+                  console.log("Restored knowledge bases:", kbNames);
+                } else {
+                  // If no matching names found, clear selection
+                  setSelectedKbs([]);
+                }
+              } else {
+                // No knowledge base info in session, clear selection
+                setSelectedKbs([]);
+              }
+              
               // Mark that we're loading history so scroll logic knows to scroll to top
               isLoadingHistoryRef.current = true;
               
-              // Only set messages when the history is not empty
+              // Set messages
               setMessages(convertedHistory);
               console.log("Loaded chat history:", convertedHistory.length, "messages");
               
@@ -495,26 +543,30 @@ function ChatPageContent() {
                 }
               });
             } else {
-              // No history found, this is a new session - just initialize empty page
-              console.log("No history found, waiting for user to start conversation");
+              // No history found, this is a new session
+              console.log("No history found, this is a new session");
               setMessages([]);
+              // Reset knowledge base selection for new sessions
+              setSelectedKbs([]);
             }
           } else {
-            // Failed to load history, just initialize empty page
-            console.log("Failed to load history, waiting for user to start conversation");
+            // Failed to load history, treat as new session
+            console.log("Failed to load history, treating as new session");
             setMessages([]);
+            setSelectedKbs([]);
           }
         } catch (error) {
           console.error("Failed to load chat history:", error);
-          // Just initialize empty page
-          console.log("Error loading history, waiting for user to start conversation");
+          // Error loading history, treat as new session
+          console.log("Error loading history, treating as new session");
           setMessages([]);
+          setSelectedKbs([]);
         }
       }
     };
     
     initializeChat();
-  }, [sessionId, initialQuestion, isLoadingKbs]);
+  }, [sessionId, initialQuestion, isLoadingKbs, kbIdToNameMap]);
   
   // Track previous message count and loading state to determine scroll behavior
   const prevMessageCountRef = useRef(0);

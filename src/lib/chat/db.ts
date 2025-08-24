@@ -109,6 +109,18 @@ export async function updateChatSessionTitle(sessionId: string, title: string): 
 }
 
 /**
+ * Update chat session knowledge base IDs
+ */
+export async function updateChatSessionKbIds(sessionId: string, kbIds?: number[]): Promise<void> {
+  await db.update(chatSessions)
+    .set({ 
+      kbIds: kbIds ? JSON.stringify(kbIds) : null,
+      updatedAt: new Date().toISOString() 
+    })
+    .where(eq(chatSessions.sessionId, sessionId));
+}
+
+/**
  * Delete chat session and all its messages
  */
 export async function deleteChatSession(sessionId: string): Promise<void> {
