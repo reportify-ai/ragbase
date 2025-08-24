@@ -397,11 +397,7 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
                 <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-3/4" />
               </div>
             ))
-          ) : chatSessions.length === 0 ? (
-            <div className="text-center text-sm text-gray-500 dark:text-gray-400 h-9 px-4 mx-2 rounded-md flex items-center justify-center">
-              {t('components.menu.noHistory')}
-            </div>
-          ) : (
+          ) : chatSessions.length > 0 ? (
             chatSessions.map((session) => (
                               <div
                   key={session.sessionId}
@@ -497,7 +493,7 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
                 )}
               </div>
             ))
-          )}
+          ) : null}
         </div>
       </div>
       {/* Settings Section */}

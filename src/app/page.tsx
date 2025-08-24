@@ -81,12 +81,26 @@ export default function HomePage() {
     loadKnowledgeBases();
   }, []);
   
-  // Automatically focus search box
+  // Automatically focus search box when page loads
   useEffect(() => {
     if (!isLoading && searchInputRef.current) {
-      searchInputRef.current.focus();
+      // Add a small delay to ensure the component is fully rendered
+      const timer = setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 100);
+      
+      return () => clearTimeout(timer);
     }
   }, [isLoading]);
+  
+  // Also focus when component first mounts
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   function handleSearchSubmit(e?: React.FormEvent) {
     if (e) {

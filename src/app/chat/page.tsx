@@ -721,12 +721,37 @@ function ChatPageContent() {
     );
   };
   
-  // Automatically focus input field
+  // Automatically focus input field when page loads or session changes
   useEffect(() => {
     if (!isLoadingKbs && inputRef.current) {
-      inputRef.current.focus();
+      // Add a small delay to ensure the component is fully rendered
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+      
+      return () => clearTimeout(timer);
     }
-  }, [isLoadingKbs]);
+  }, [isLoadingKbs, sessionId]);
+  
+  // Also focus when component first mounts
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, []);
+  
+  // Focus input after messages are loaded (for existing sessions)
+  useEffect(() => {
+    if (messages.length > 0 && !isLoading && !isLoadingKbs && inputRef.current) {
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [messages.length, isLoading, isLoadingKbs]);
   
   // New chat button
   const NewChatButton = (
@@ -742,53 +767,56 @@ function ChatPageContent() {
   
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Header */}
-      <div className="p-8 pb-0">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-              {t('pages.chat.title')}
-            </h2>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => router.push('/chat/history')}
-              title={t('pages.chatHistory.title')}
-              className="h-8 w-8"
-            >
-              <History className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-            </Button>
-          </div>
-          {NewChatButton}
-        </div>
-      </div>
-      
       <div className="flex flex-1 overflow-hidden">
         {/* Main chat area */}
-        <div className="flex flex-col h-full relative flex-1">
-          {/* Message area - scrollable */}
-          <div className="flex-1 overflow-y-auto px-8 py-6 pb-45" ref={chatContainerRef}>
+        <div className="flex flex-col h-full flex-1 relative">
+          {/* Scrollable content area including header and messages */}
+          <div className="flex-1 overflow-y-auto" ref={chatContainerRef}>
             <div className={`mx-auto ${showRelatedDocs ? 'max-w-3xl' : 'max-w-3xl'}`}>
-              <div className="mb-4 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded px-4 py-2">
-                {t('pages.chat.description')}
+              {/* Header - now inside scrollable area */}
+              <div className="p-8 pb-0">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+                      {t('pages.chat.title')}
+                    </h2>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => router.push('/chat/history')}
+                      title={t('pages.chatHistory.title')}
+                      className="h-8 w-8"
+                    >
+                      <History className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                    </Button>
+                  </div>
+                  {NewChatButton}
+                </div>
               </div>
-              {messages.map((msg, i) => (
-                <MessageBubble 
-                  key={i} 
-                  role={msg.role} 
-                  content={msg.content} 
-                  isLoading={isLoading && i === messages.length - 1 && msg.role === "ai"}
-                  hasRelatedDocs={msg.role === "ai" && !!msg.relatedDocuments && msg.relatedDocuments.length > 0}
-                  onShowRelatedDocs={() => toggleRelatedDocs(i)}
-                  relatedDocsCount={msg.relatedDocuments?.length || 0}
-                />
-              ))}
-              <div ref={messagesEndRef} className="h-4" />
+              
+              {/* Messages area */}
+              <div className="px-8 py-6 pb-32">
+                <div className="mb-4 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded px-4 py-2">
+                  {t('pages.chat.description')}
+                </div>
+                {messages.map((msg, i) => (
+                  <MessageBubble 
+                    key={i} 
+                    role={msg.role} 
+                    content={msg.content} 
+                    isLoading={isLoading && i === messages.length - 1 && msg.role === "ai"}
+                    hasRelatedDocs={msg.role === "ai" && !!msg.relatedDocuments && msg.relatedDocuments.length > 0}
+                    onShowRelatedDocs={() => toggleRelatedDocs(i)}
+                    relatedDocsCount={msg.relatedDocuments?.length || 0}
+                  />
+                ))}
+                <div ref={messagesEndRef} className="h-4" />
+              </div>
             </div>
           </div>
           
-          {/* Input area - floating at the bottom */}
-          <div className="absolute bottom-0 left-0 right-0 px-8 py-4 bg-transparent dark:bg-transparent border-t-0 border-gray-200 dark:border-gray-800">
+          {/* Floating input area */}
+          <div className="absolute bottom-0 left-0 right-0 px-8 py-4">
             <div className={`mx-auto ${showRelatedDocs ? 'max-w-3xl' : 'max-w-3xl'}`}>
               <SearchInputCard
                 value={input}

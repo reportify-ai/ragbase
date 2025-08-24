@@ -89,7 +89,7 @@
     "icon": "public/icon.png",
     "productName": "RAGBASE",
     "directories": {
-      "output": "dist"
+      "output": "out"
     },
     "files": [
       "electron/",
@@ -115,9 +115,7 @@
     "forge": {
       "packagerConfig": {
         "icon": "public/icon.icns",
-        "directories": {
-          "output": "dist"
-        }
+        "out": "out"
       },
       "makers": [
         {
