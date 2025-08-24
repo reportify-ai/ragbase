@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { SidebarMenu } from "@/components/ui/menu";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ArrowLeft, Edit, Folder, CheckCircle2, Circle, Clock, AlertCircle, Play, RefreshCw, Trash2, Eye, FolderSync } from "lucide-react";
@@ -380,10 +380,8 @@ export default function KbDetailPage() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-      <SidebarMenu />
-      <main className="flex-1 p-8 overflow-y-auto">
-        <div className="max-w-6xl mx-auto">
+    <div className="p-8 overflow-y-auto h-full">
+      <div className="max-w-6xl mx-auto">
           <div className="flex items-center mb-4">
             <Button asChild variant="ghost" size="icon" className="mr-2 hover:cursor-pointer">
               <Link href="/kb"><ArrowLeft className="w-5 h-5" /></Link>
@@ -699,7 +697,6 @@ export default function KbDetailPage() {
             onSave={handleEditSave}
           />
         </div>
-      </main>
       
       {/* Delete Confirmation Dialogs */}
       <ConfirmDialog

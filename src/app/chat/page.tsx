@@ -6,7 +6,7 @@ import {
   History,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SidebarMenu } from "@/components/ui/menu";
+
 import { useState, useRef, useEffect, Suspense, useMemo } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -50,7 +50,7 @@ function ChatPageContent() {
   // Get URL parameters
   const searchParams = useSearchParams();
   const initialQuestion = searchParams.get('q') || "";
-  const initialSessionId = searchParams.get('sessionId') || uuidv4();
+  const currentSessionId = searchParams.get('sessionId') || uuidv4();
   
   // Get knowledge base ID parameters (may be multiple)
   const initialKbIdsRef = useRef<string[]>([]);
@@ -64,7 +64,13 @@ function ChatPageContent() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [sessionId, setSessionId] = useState(initialSessionId);
+  const [sessionId, setSessionId] = useState(currentSessionId);
+  
+  // Update sessionId when URL parameters change
+  useEffect(() => {
+    console.log("URL sessionId changed:", currentSessionId);
+    setSessionId(currentSessionId);
+  }, [currentSessionId]);
   const [selectedKbs, setSelectedKbs] = useState<string[]>([]);
   const [kbs, setKbs] = useState<KnowledgeBase[]>([]);
   const [isLoadingKbs, setIsLoadingKbs] = useState(true);
@@ -81,8 +87,6 @@ function ChatPageContent() {
     return [];
   }, [selectedMessageIndex, messages]);
   
-  // Use ref instead of state to track if the initial question has been processed, avoid duplicate rendering and execution
-  const initialQuestionProcessedRef = useRef(false);
   // Used to prevent handleSendMessage from processing the same message repeatedly
   const processingMessageRef = useRef(false);
   
@@ -207,64 +211,108 @@ function ChatPageContent() {
         .filter(kb => selectedKbs.includes(kb.name))
         .map(kb => kb.id);
       
-      // For new conversations, generate title and create session immediately
+      // For new conversations, start title generation in parallel (non-blocking)
       if (isActuallyFirstMessage) {
-        try {
-          console.log("First message detected, generating title and creating session");
-          
-          // Step 1: Generate title based on user message
-          const titleResponse = await fetch("/api/chat/generate-title", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              sessionId: sessionId,
-              userMessage: messageText
-            }),
-          });
-          
-          let generatedTitle = "New Conversation"; // Fallback
-          if (titleResponse.ok) {
-            const titleData = await titleResponse.json();
-            generatedTitle = titleData.title || generatedTitle;
-            console.log("Generated title:", generatedTitle);
-          } else {
-            console.error("Failed to generate title, using fallback");
-          }
-          
-          // Step 2: Initialize session in database with title
-          const initResponse = await fetch("/api/chat/history", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              sessionId: sessionId,
-              kbIds: kbIds.length > 0 ? kbIds : undefined,
-              title: generatedTitle // Include title in session creation
-            }),
-          });
-          
-          if (initResponse.ok) {
-            // Step 3: Add to menu immediately with generated title
-            const newSession = {
-              id: Date.now(),
-              sessionId: sessionId,
-              title: generatedTitle,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-              messageCount: 0,
-              kbIds: kbIds.length > 0 ? kbIds : undefined,
-              isArchived: false
-            };
+        console.log("First message detected, starting parallel title generation");
+        
+        // Start title generation in background without waiting
+        const handleTitleGeneration = async () => {
+          try {
+            console.log("Starting background title generation");
             
-            // Emit event to add new session to menu
-            emitMenuEvent('newChatSession', newSession);
+            // Generate title based on user message
+            const titleResponse = await fetch("/api/chat/generate-title", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                sessionId: sessionId,
+                userMessage: messageText
+              }),
+            });
+            
+            let generatedTitle = "New Conversation"; // Fallback
+            if (titleResponse.ok) {
+              const titleData = await titleResponse.json();
+              generatedTitle = titleData.title || generatedTitle;
+              console.log("Generated title:", generatedTitle);
+            } else {
+              console.error("Failed to generate title, using fallback");
+            }
+            
+            // Initialize session in database with title
+            const initResponse = await fetch("/api/chat/history", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                sessionId: sessionId,
+                kbIds: kbIds.length > 0 ? kbIds : undefined,
+                title: generatedTitle
+              }),
+            });
+            
+            if (initResponse.ok) {
+              // Add to menu with generated title
+              const newSession = {
+                id: Date.now(),
+                sessionId: sessionId,
+                title: generatedTitle,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                messageCount: 0,
+                kbIds: kbIds.length > 0 ? kbIds : undefined,
+                isArchived: false
+              };
+              
+              // Emit event to add new session to menu
+              emitMenuEvent('newChatSession', newSession);
+              
+              // Update the title in the menu if it was already added with a temporary title
+              emitMenuEvent('updateChatTitle', {
+                sessionId: sessionId,
+                title: generatedTitle
+              });
+            }
+          } catch (error) {
+            console.error("Error in background title generation:", error);
+            
+            // Fallback: create session with default title
+            try {
+              await fetch("/api/chat/history", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  sessionId: sessionId,
+                  kbIds: kbIds.length > 0 ? kbIds : undefined,
+                  title: "New Conversation"
+                }),
+              });
+              
+              const fallbackSession = {
+                id: Date.now(),
+                sessionId: sessionId,
+                title: "New Conversation",
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                messageCount: 0,
+                kbIds: kbIds.length > 0 ? kbIds : undefined,
+                isArchived: false
+              };
+              
+              emitMenuEvent('newChatSession', fallbackSession);
+            } catch (fallbackError) {
+              console.error("Error in fallback session creation:", fallbackError);
+            }
           }
-        } catch (error) {
-          console.error("Error creating session with title:", error);
-        }
+        };
+        
+        // Start title generation in background (don't await)
+        handleTitleGeneration();
       }
       
       // Send request to chat API
@@ -388,83 +436,117 @@ function ChatPageContent() {
   
   // Handle initial question and load chat history
   useEffect(() => {
-    // If the initial question has already been processed, skip
-    if (initialQuestionProcessedRef.current) {
-      console.log("Initial question already processed, skipping");
+    // Don't initialize if knowledge bases are still loading
+    if (isLoadingKbs) {
+      console.log("Knowledge bases still loading, waiting...");
       return;
     }
+
+    console.log("Initializing chat for sessionId:", sessionId, "initialQuestion:", initialQuestion);
     
-    // Modify condition, even if no knowledge base is selected, chat can be initialized
-    if (!isLoadingKbs) {
-      // Immediately mark as processed to prevent duplicate execution
-      initialQuestionProcessedRef.current = true;
-      
-      // Only execute once when the component is first loaded
-      const initializeChat = async () => {
-        // If there is an initial question and the knowledge base has been loaded
-        if (initialQuestion) {
-          console.log("Processing initial question:", initialQuestion);
-          // Use the unified handleSendMessage function to process the initial question
-          await handleSendMessage(initialQuestion, true);
-        } 
-        // If there is no initial question, try to load history
-        else if (!initialQuestion) {
-          console.log("Loading chat history");
-          try {
-            const response = await fetch(`/api/chat/history?sessionId=${sessionId}`);
-            if (response.ok) {
-              const data = await response.json();
-              if (data.history && Array.isArray(data.history) && data.history.length > 0) {
-                // Convert database format to UI format if needed
-                const convertedHistory = data.history.map((msg: any) => ({
-                  role: msg.role === 'human' ? 'user' : msg.role as 'user' | 'ai',
-                  content: msg.content,
-                  relatedDocuments: msg.relatedDocuments
-                }));
-                
-                // Only set messages when the history is not empty
-                setMessages(convertedHistory);
-                console.log("Loaded chat history:", convertedHistory.length, "messages");
-                
-                // If there are messages with related documents, set up the document ID to name mapping
-                convertedHistory.forEach((msg: ChatMessage, index: number) => {
-                  if (msg.role === 'ai' && msg.relatedDocuments && msg.relatedDocuments.length > 0) {
-                    // No need to set selectedMessageIndex here, let user click to view documents
-                    console.log(`Message ${index} has ${msg.relatedDocuments.length} related documents`);
-                  }
-                });
-              } else {
-                // No history found, this is a new session - just initialize empty page
-                console.log("No history found, waiting for user to start conversation");
-              }
+    // Clear previous state when sessionId changes
+    setMessages([]);
+    setInput("");
+    setSelectedMessageIndex(null);
+    setShowRelatedDocs(false);
+    setIsLoading(false);
+    
+    // Reset scroll tracking
+    prevMessageCountRef.current = 0;
+    isLoadingHistoryRef.current = false;
+    
+    const initializeChat = async () => {
+      // If there is an initial question and the knowledge base has been loaded
+      if (initialQuestion) {
+        console.log("Processing initial question:", initialQuestion);
+        // Use the unified handleSendMessage function to process the initial question
+        await handleSendMessage(initialQuestion, true);
+      } 
+      // If there is no initial question, try to load history
+      else {
+        console.log("Loading chat history for sessionId:", sessionId);
+        try {
+          const response = await fetch(`/api/chat/history?sessionId=${sessionId}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.history && Array.isArray(data.history) && data.history.length > 0) {
+              // Convert database format to UI format if needed
+              const convertedHistory = data.history.map((msg: any) => ({
+                role: msg.role === 'human' ? 'user' : msg.role as 'user' | 'ai',
+                content: msg.content,
+                relatedDocuments: msg.relatedDocuments
+              }));
+              
+              // Mark that we're loading history so scroll logic knows to scroll to top
+              isLoadingHistoryRef.current = true;
+              
+              // Only set messages when the history is not empty
+              setMessages(convertedHistory);
+              console.log("Loaded chat history:", convertedHistory.length, "messages");
+              
+              // If there are messages with related documents, set up the document ID to name mapping
+              convertedHistory.forEach((msg: ChatMessage, index: number) => {
+                if (msg.role === 'ai' && msg.relatedDocuments && msg.relatedDocuments.length > 0) {
+                  // No need to set selectedMessageIndex here, let user click to view documents
+                  console.log(`Message ${index} has ${msg.relatedDocuments.length} related documents`);
+                }
+              });
             } else {
-              // Failed to load history, just initialize empty page
-              console.log("Failed to load history, waiting for user to start conversation");
+              // No history found, this is a new session - just initialize empty page
+              console.log("No history found, waiting for user to start conversation");
+              setMessages([]);
             }
-          } catch (error) {
-            console.error("Failed to load chat history:", error);
-            // Just initialize empty page
-            console.log("Error loading history, waiting for user to start conversation");
+          } else {
+            // Failed to load history, just initialize empty page
+            console.log("Failed to load history, waiting for user to start conversation");
+            setMessages([]);
           }
+        } catch (error) {
+          console.error("Failed to load chat history:", error);
+          // Just initialize empty page
+          console.log("Error loading history, waiting for user to start conversation");
+          setMessages([]);
         }
-      };
-      
-      initializeChat();
+      }
+    };
+    
+    initializeChat();
+  }, [sessionId, initialQuestion, isLoadingKbs]);
+  
+  // Track previous message count and loading state to determine scroll behavior
+  const prevMessageCountRef = useRef(0);
+  const isLoadingHistoryRef = useRef(false);
+  
+  // Handle scrolling based on message changes
+  useEffect(() => {
+    const currentMessageCount = messages.length;
+    const prevMessageCount = prevMessageCountRef.current;
+    
+    console.log("Messages changed:", {
+      currentCount: currentMessageCount,
+      prevCount: prevMessageCount,
+      isLoadingHistory: isLoadingHistoryRef.current
+    });
+    
+    if (currentMessageCount > 0) {
+      if (isLoadingHistoryRef.current) {
+        // Loading history - scroll to top
+        console.log("Loading history completed, scrolling to top");
+        if (chatContainerRef.current) {
+          chatContainerRef.current.scrollTop = 0;
+        }
+        isLoadingHistoryRef.current = false;
+      } else if (currentMessageCount > 0 && currentMessageCount >= prevMessageCount) {
+        // Messages added or updated during conversation - scroll to bottom
+        console.log("Messages added/updated during conversation, scrolling to bottom");
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+      }
     }
     
-    // Cleanup function, reset all refs when the component is unmounted
-    return () => {
-      initialQuestionProcessedRef.current = false;
-      processingMessageRef.current = false;
-    };
-    // Remove selectedKbs dependency to avoid circular dependency
-  }, [initialQuestion, sessionId, isLoadingKbs]);
-  
-  // Scroll to the bottom
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
+    // Update the previous count
+    prevMessageCountRef.current = currentMessageCount;
   }, [messages]);
   
   // Send message - form submission processing
@@ -484,8 +566,8 @@ function ChatPageContent() {
     // Generate new session ID
     const newSessionId = uuidv4();
     
-    // Completely reload the page by redirecting to a new URL
-    window.location.href = `/chat?sessionId=${newSessionId}`;
+    // Navigate to new chat session
+    router.push(`/chat?sessionId=${newSessionId}`);
   };
   
   // Switch knowledge base selection
@@ -604,85 +686,81 @@ function ChatPageContent() {
   );
   
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-      <SidebarMenu />
-      
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="p-8 pb-0">
-          <div className="max-w-3xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-                {t('pages.chat.title')}
-              </h2>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => router.push('/chat/history')}
-                title={t('pages.chatHistory.title')}
-                className="h-8 w-8"
-              >
-                <History className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-              </Button>
-            </div>
-            {NewChatButton}
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Header */}
+      <div className="p-8 pb-0">
+        <div className="max-w-3xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+              {t('pages.chat.title')}
+            </h2>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => router.push('/chat/history')}
+              title={t('pages.chatHistory.title')}
+              className="h-8 w-8"
+            >
+              <History className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+            </Button>
           </div>
+          {NewChatButton}
         </div>
-        
-        <div className="flex flex-1 overflow-hidden">
-          {/* Main chat area */}
-          <div className="flex flex-col h-full relative flex-1">
-            {/* Message area - scrollable */}
-            <div className="flex-1 overflow-y-auto px-8 py-6 pb-45" ref={chatContainerRef}>
-              <div className={`mx-auto ${showRelatedDocs ? 'max-w-3xl' : 'max-w-3xl'}`}>
-                <div className="mb-4 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded px-4 py-2">
-                  {t('pages.chat.description')}
-                </div>
-                {messages.map((msg, i) => (
-                  <MessageBubble 
-                    key={i} 
-                    role={msg.role} 
-                    content={msg.content} 
-                    isLoading={isLoading && i === messages.length - 1 && msg.role === "ai"}
-                    hasRelatedDocs={msg.role === "ai" && !!msg.relatedDocuments && msg.relatedDocuments.length > 0}
-                    onShowRelatedDocs={() => toggleRelatedDocs(i)}
-                    relatedDocsCount={msg.relatedDocuments?.length || 0}
-                  />
-                ))}
-                <div ref={messagesEndRef} className="h-4" />
+      </div>
+      
+      <div className="flex flex-1 overflow-hidden">
+        {/* Main chat area */}
+        <div className="flex flex-col h-full relative flex-1">
+          {/* Message area - scrollable */}
+          <div className="flex-1 overflow-y-auto px-8 py-6 pb-45" ref={chatContainerRef}>
+            <div className={`mx-auto ${showRelatedDocs ? 'max-w-3xl' : 'max-w-3xl'}`}>
+              <div className="mb-4 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded px-4 py-2">
+                {t('pages.chat.description')}
               </div>
-            </div>
-            
-            {/* Input area - floating at the bottom */}
-            <div className="absolute bottom-0 left-0 right-0 px-8 py-4 bg-transparent dark:bg-transparent border-t-0 border-gray-200 dark:border-gray-800">
-              <div className={`mx-auto ${showRelatedDocs ? 'max-w-3xl' : 'max-w-3xl'}`}>
-                <SearchInputCard
-                  value={input}
-                  onChange={setInput}
-                  onSubmit={sendMessage}
-                  isLoading={isLoading}
-                  disabled={isLoadingKbs}
-                  placeholder={t('pages.chat.inputPlaceholder')}
-                  inputHeight="h-12"
-                  minHeight="32px"
-                  inputRef={inputRef}
-                  knowledgeBases={kbs}
-                  selectedKbs={selectedKbs}
-                  onToggleKb={handleToggleKb}
-                  isLoadingKbs={isLoadingKbs}
+              {messages.map((msg, i) => (
+                <MessageBubble 
+                  key={i} 
+                  role={msg.role} 
+                  content={msg.content} 
+                  isLoading={isLoading && i === messages.length - 1 && msg.role === "ai"}
+                  hasRelatedDocs={msg.role === "ai" && !!msg.relatedDocuments && msg.relatedDocuments.length > 0}
+                  onShowRelatedDocs={() => toggleRelatedDocs(i)}
+                  relatedDocsCount={msg.relatedDocuments?.length || 0}
                 />
-              </div>
+              ))}
+              <div ref={messagesEndRef} className="h-4" />
             </div>
           </div>
           
-          {/* Related documents sidebar - can switch display/hide */}
-          {showRelatedDocs && (
-            <div className="w-80 h-full border-l border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
-              <RelatedDocs onClose={() => setShowRelatedDocs(false)} />
+          {/* Input area - floating at the bottom */}
+          <div className="absolute bottom-0 left-0 right-0 px-8 py-4 bg-transparent dark:bg-transparent border-t-0 border-gray-200 dark:border-gray-800">
+            <div className={`mx-auto ${showRelatedDocs ? 'max-w-3xl' : 'max-w-3xl'}`}>
+              <SearchInputCard
+                value={input}
+                onChange={setInput}
+                onSubmit={sendMessage}
+                isLoading={isLoading}
+                disabled={isLoadingKbs}
+                placeholder={t('pages.chat.inputPlaceholder')}
+                inputHeight="h-12"
+                minHeight="32px"
+                inputRef={inputRef}
+                knowledgeBases={kbs}
+                selectedKbs={selectedKbs}
+                onToggleKb={handleToggleKb}
+                isLoadingKbs={isLoadingKbs}
+              />
             </div>
-          )}
+          </div>
         </div>
-      </main>
+        
+        {/* Related documents sidebar - can switch display/hide */}
+        {showRelatedDocs && (
+          <div className="w-80 h-full border-l border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+            <RelatedDocs onClose={() => setShowRelatedDocs(false)} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/card";
 import { useState, useEffect, useRef } from "react";
 import { Modal } from "@/components/ui/modal";
-import { SidebarMenu } from "@/components/ui/menu";
+
 import { FileIcon } from "@/components/ui/file-icon";
 import { z } from 'zod';
 import { KbModal } from "@/components/ui/kb-modal";
@@ -293,177 +293,174 @@ export default function KbPage() {
   const pageNumbers = getPageNumbers(filePage, totalPages);
 
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-      <SidebarMenu />
-      <main className="flex-1 p-8 overflow-y-auto">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{t('pages.kb.title')}</h2>
-            <Button
-              size="sm"
-              variant="default"
-              className="flex items-center gap-1"
-              onClick={() => { setEditingKb(null); setModalOpen(true); }}
-            >
-              <Plus className="w-4 h-4" />{t('pages.kb.createKnowledgeBase')}
-            </Button>
-          </div>
-          {loading ? (
-            <div className="text-gray-500 py-8 text-center">{t('common.messages.loading')}</div>
-          ) : error ? (
-            <div className="text-red-500 py-8 text-center">{error}</div>
-          ) : (
-            <TopCards kbs={kbs} onEdit={handleEditKb} onDelete={showDeleteKbConfirmation} />
-          )}
-          <Card className="mb-8">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between w-full">
-                <span className="text-base font-semibold">{t('pages.kb.allFiles')}</span>
-                <div className="flex gap-2 ml-4 justify-end">
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={fetchAllFiles}
-                    className="flex items-center gap-1"
-                    disabled={filesLoading}
-                  >
-                    {filesLoading ? (
-                      <div className="animate-spin h-4 w-4 border-2 border-gray-500 border-t-transparent rounded-full"></div>
-                    ) : (
-                      <RefreshCw className="w-4 h-4" />
-                    )}
-                    {t('common.buttons.refresh')}
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <tbody className="bg-white dark:bg-gray-900">
+    <div className="p-8 overflow-y-auto h-full">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{t('pages.kb.title')}</h2>
+          <Button
+            size="sm"
+            variant="default"
+            className="flex items-center gap-1"
+            onClick={() => { setEditingKb(null); setModalOpen(true); }}
+          >
+            <Plus className="w-4 h-4" />{t('pages.kb.createKnowledgeBase')}
+          </Button>
+        </div>
+        {loading ? (
+          <div className="text-gray-500 py-8 text-center">{t('common.messages.loading')}</div>
+        ) : error ? (
+          <div className="text-red-500 py-8 text-center">{error}</div>
+        ) : (
+          <TopCards kbs={kbs} onEdit={handleEditKb} onDelete={showDeleteKbConfirmation} />
+        )}
+        <Card className="mb-8">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between w-full">
+              <span className="text-base font-semibold">{t('pages.kb.allFiles')}</span>
+              <div className="flex gap-2 ml-4 justify-end">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={fetchAllFiles}
+                  className="flex items-center gap-1"
+                  disabled={filesLoading}
+                >
                   {filesLoading ? (
-                    <tr><td className="text-center py-8 text-gray-500">{t('common.messages.loading')}</td></tr>
-                  ) : filesError ? (
-                    <tr><td className="text-center py-8 text-red-500">{filesError}</td></tr>
-                  ) : allFiles.length === 0 ? (
-                    <tr><td className="text-center py-8 text-gray-400">{t('pages.kb.noFiles')}</td></tr>
+                    <div className="animate-spin h-4 w-4 border-2 border-gray-500 border-t-transparent rounded-full"></div>
                   ) : (
-                    allFiles.map((f, i) => (
-                      <tr key={f.id || i} className="border-b last:border-0 dark:border-gray-800">
-                        <td className="px-4 py-3">
-                          {/* First row: file name */}
-                          <div className="flex items-center gap-2 mb-2">
-                            <FileIcon ext={f.ext || (f.name?.split('.')?.pop() || '')} />
-                            <span className="font-medium">{f.name}</span>
+                    <RefreshCw className="w-4 h-4" />
+                  )}
+                  {t('common.buttons.refresh')}
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <tbody className="bg-white dark:bg-gray-900">
+                {filesLoading ? (
+                  <tr><td className="text-center py-8 text-gray-500">{t('common.messages.loading')}</td></tr>
+                ) : filesError ? (
+                  <tr><td className="text-center py-8 text-red-500">{filesError}</td></tr>
+                ) : allFiles.length === 0 ? (
+                  <tr><td className="text-center py-8 text-gray-400">{t('pages.kb.noFiles')}</td></tr>
+                ) : (
+                  allFiles.map((f, i) => (
+                    <tr key={f.id || i} className="border-b last:border-0 dark:border-gray-800">
+                      <td className="px-4 py-3">
+                        {/* First row: file name */}
+                        <div className="flex items-center gap-2 mb-2">
+                          <FileIcon ext={f.ext || (f.name?.split('.')?.pop() || '')} />
+                          <span className="font-medium">{f.name}</span>
+                        </div>
+                        
+                        {/* Second row: knowledge base, size, upload time, status and operation */}
+                        <div className="flex items-center text-xs text-gray-500 gap-4 ml-6">
+                          {/* Knowledge base */}
+                          <div className="flex items-center gap-1">
+                            <span>{t('pages.kb.knowledgeBase')}:</span>
+                            <span>{f.kb_name || t('common.messages.unknown')}</span>
                           </div>
                           
-                          {/* Second row: knowledge base, size, upload time, status and operation */}
-                          <div className="flex items-center text-xs text-gray-500 gap-4 ml-6">
-                            {/* Knowledge base */}
-                            <div className="flex items-center gap-1">
-                              <span>{t('pages.kb.knowledgeBase')}:</span>
-                              <span>{f.kb_name || t('common.messages.unknown')}</span>
-                            </div>
-                            
-                            {/* Size */}
-                            <div className="flex items-center gap-1">
-                              <span>{t('pages.kb.size')}:</span>
-                              <span>{typeof f.size === 'number' ? (f.size / 1024 / 1024).toFixed(2) + ' MB' : f.size}</span>
-                            </div>
-                            
-                            {/* Upload time */}
-                            <div className="flex items-center gap-1">
-                              <span>{t('pages.kb.uploadTime')}:</span>
-                              <span>{f.created_at ? (f.created_at.split('T')[0] + ' ' + (f.created_at.split('T')[1]?.slice(0,5) || '')) : ''}</span>
-                            </div>
-                            
-                            {/* Status */}
-                            <div className="flex items-center gap-1">
-                              <span>{t('pages.kb.status')}:</span>
-                              <FileStatus status={f.status} />
-                            </div>
-                            
-                            {/* Operation */}
-                            <div className="flex items-center gap-1 ml-auto">
-                              {f.path && (
-                                <FileOpener filePath={f.path} iconOnly={true} />
-                              )}
-                              <Button 
-                                size="icon" 
-                                variant="ghost" 
-                                onClick={async () => {
-                                  try {
-                                    const response = await fetch('/api/kb/files/retry', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({ id: f.id }),
-                                    });
-                                    if (!response.ok) throw new Error(t('api.errors.retryFailed'));
-                                    const res = await fetch(`/api/kb/files?limit=${pageSize}&offset=${(filePage-1)*pageSize}`);
-                                    const data = await res.json();
-                                    setAllFiles(data.data || []);
-                                    setAllFilesTotal(data.total || 0);
-                                  } catch (error) {
-                                    console.error('Retry file failed:', error);
-                                    alert(t('api.errors.retryFailed'));
-                                  }
-                                }}
-                              >
-                                <Play className="w-4 h-4" />
-                              </Button>
-                              <Button 
-                                size="icon" 
-                                variant="ghost" 
-                                onClick={() => showDeleteFileConfirmation(f.id)}
-                                disabled={deletingFile === f.id}
-                                className={deletingFile === f.id ? "opacity-50 cursor-not-allowed" : ""}
-                              >
-                                {deletingFile === f.id ? (
-                                  <div className="animate-spin h-4 w-4 border-2 border-gray-500 border-t-transparent rounded-full"></div>
-                                ) : (
-                                  <Trash2 className="w-4 h-4 text-red-500 hover:text-red-700" />
-                                )}
-                              </Button>
-                            </div>
+                          {/* Size */}
+                          <div className="flex items-center gap-1">
+                            <span>{t('pages.kb.size')}:</span>
+                            <span>{typeof f.size === 'number' ? (f.size / 1024 / 1024).toFixed(2) + ' MB' : f.size}</span>
                           </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                  </tbody>
-                </table>
-              </div>
-              <div className="flex justify-end items-center gap-2 px-4 py-3 border-t">
-                <Button size="sm" variant="ghost" onClick={() => setFilePage(p => Math.max(1, p-1))} disabled={filePage === 1}>&lt;</Button>
-                {pageNumbers.map((n, i) =>
-                  typeof n === 'number' ? (
-                    <Button key={n} size="sm" variant={n === filePage ? 'default' : 'ghost'} onClick={() => setFilePage(n)}>{n}</Button>
-                  ) : (
-                    <span key={"ellipsis-"+i} className="px-2 text-gray-400">...</span>
-                  )
+                          
+                          {/* Upload time */}
+                          <div className="flex items-center gap-1">
+                            <span>{t('pages.kb.uploadTime')}:</span>
+                            <span>{f.created_at ? (f.created_at.split('T')[0] + ' ' + (f.created_at.split('T')[1]?.slice(0,5) || '')) : ''}</span>
+                          </div>
+                          
+                          {/* Status */}
+                          <div className="flex items-center gap-1">
+                            <span>{t('pages.kb.status')}:</span>
+                            <FileStatus status={f.status} />
+                          </div>
+                          
+                          {/* Operation */}
+                          <div className="flex items-center gap-1 ml-auto">
+                            {f.path && (
+                              <FileOpener filePath={f.path} iconOnly={true} />
+                            )}
+                            <Button 
+                              size="icon" 
+                              variant="ghost" 
+                              onClick={async () => {
+                                try {
+                                  const response = await fetch('/api/kb/files/retry', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ id: f.id }),
+                                  });
+                                  if (!response.ok) throw new Error(t('api.errors.retryFailed'));
+                                  const res = await fetch(`/api/kb/files?limit=${pageSize}&offset=${(filePage-1)*pageSize}`);
+                                  const data = await res.json();
+                                  setAllFiles(data.data || []);
+                                  setAllFilesTotal(data.total || 0);
+                                } catch (error) {
+                                  console.error('Retry file failed:', error);
+                                  alert(t('api.errors.retryFailed'));
+                                }
+                              }}
+                            >
+                              <Play className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              size="icon" 
+                              variant="ghost" 
+                              onClick={() => showDeleteFileConfirmation(f.id)}
+                              disabled={deletingFile === f.id}
+                              className={deletingFile === f.id ? "opacity-50 cursor-not-allowed" : ""}
+                            >
+                              {deletingFile === f.id ? (
+                                <div className="animate-spin h-4 w-4 border-2 border-gray-500 border-t-transparent rounded-full"></div>
+                              ) : (
+                                <Trash2 className="w-4 h-4 text-red-500 hover:text-red-700" />
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
                 )}
-                <Button size="sm" variant="ghost" onClick={() => setFilePage(p => Math.min(totalPages, p+1))} disabled={filePage === totalPages}>&gt;</Button>
-                
-                {/* Page jump input */}
-                <input
-                  type="number"
-                  min={1}
-                  max={totalPages}
-                  value={jumpPage}
-                  onChange={(e) => setJumpPage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleJumpToPage()}
-                  className="w-12 h-8 text-center text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder={filePage.toString()}
-                  title={t('common.labels.jumpTo')}
-                />
-                
-                <span className="text-xs text-gray-400 ml-2">{t('pages.kb.totalFiles', { count: allFilesTotal })}</span>
-              </div>
-            </CardContent>
-          </Card>
-          <KbModal open={modalOpen} kb={editingKb} onClose={() => setModalOpen(false)} onSave={handleSaveKb} />
-        </div>
-      </main>
+                </tbody>
+              </table>
+            </div>
+            <div className="flex justify-end items-center gap-2 px-4 py-3 border-t">
+              <Button size="sm" variant="ghost" onClick={() => setFilePage(p => Math.max(1, p-1))} disabled={filePage === 1}>&lt;</Button>
+              {pageNumbers.map((n, i) =>
+                typeof n === 'number' ? (
+                  <Button key={n} size="sm" variant={n === filePage ? 'default' : 'ghost'} onClick={() => setFilePage(n)}>{n}</Button>
+                ) : (
+                  <span key={"ellipsis-"+i} className="px-2 text-gray-400">...</span>
+                )
+              )}
+              <Button size="sm" variant="ghost" onClick={() => setFilePage(p => Math.min(totalPages, p+1))} disabled={filePage === totalPages}>&gt;</Button>
+              
+              {/* Page jump input */}
+              <input
+                type="number"
+                min={1}
+                max={totalPages}
+                value={jumpPage}
+                onChange={(e) => setJumpPage(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleJumpToPage()}
+                className="w-12 h-8 text-center text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder={filePage.toString()}
+                title={t('common.labels.jumpTo')}
+              />
+              
+              <span className="text-xs text-gray-400 ml-2">{t('pages.kb.totalFiles', { count: allFilesTotal })}</span>
+            </div>
+          </CardContent>
+        </Card>
+        <KbModal open={modalOpen} kb={editingKb} onClose={() => setModalOpen(false)} onSave={handleSaveKb} />
+      </div>
       
       {/* Delete Confirmation Dialogs */}
       <ConfirmDialog

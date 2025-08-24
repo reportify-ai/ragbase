@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { FileText } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { LoadingDots } from "@/components/ui/loading-dots";
@@ -47,6 +47,9 @@ export function MessageBubble({
   // Check if it is an AI message with empty content (loading state)
   const isEmptyAiMessage = !isUser && !content && isLoading;
   
+  // Track if component is mounted to prevent state updates after unmount
+  const isMountedRef = useRef(true);
+  
   // Store processed content and think blocks
   const [processedContent, setProcessedContent] = useState("");
   const [thinkBlocks, setThinkBlocks] = useState<ThinkBlock[]>([]);
@@ -56,7 +59,9 @@ export function MessageBubble({
   // Real-time processing of content, listening to <think> tags
   useEffect(() => {
     if (isUser || !content) {
-      setProcessedContent(content);
+      if (isMountedRef.current) {
+        setProcessedContent(content);
+      }
       return;
     }
     
@@ -90,10 +95,6 @@ export function MessageBubble({
       pendingContent = openTagMatch[2] || "";
     }
     
-    // Update status
-    setPendingThinkStart(pendingStart);
-    setPendingThinkContent(pendingContent);
-    
     // Process main content (remove all <think> tags)
     let mainContent = content;
     
@@ -110,10 +111,22 @@ export function MessageBubble({
     // Clean content
     mainContent = mainContent.replace(/\n{3,}/g, '\n\n').trim();
     
-    // Update status
-    setProcessedContent(mainContent);
-    setThinkBlocks(completeBlocks);
+    // Only update state if component is still mounted
+    if (isMountedRef.current) {
+      setPendingThinkStart(pendingStart);
+      setPendingThinkContent(pendingContent);
+      setProcessedContent(mainContent);
+      setThinkBlocks(completeBlocks);
+    }
+    
   }, [content, isUser]);
+  
+  // Cleanup when component unmounts
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
   
   // Merge all think blocks, including incomplete ones
   const allThinkBlocks = useMemo(() => {
