@@ -122,24 +122,24 @@ This project is licensed under the RAGBASE Open Source License (based on Apache 
 
 ### Port 3000 Still in Use After Closing App
 
-**自动清理**: RAGBASE 应用已集成智能端口清理机制，关闭应用时会自动清理所有相关进程和端口占用。
+**Automatic Cleanup**: The RAGBASE application has integrated intelligent port cleanup mechanism that automatically cleans up all related processes and port usage when the app is closed.
 
-如果仍然遇到 "port 3000 is already in use" 错误，可以手动清理：
+If you still encounter "port 3000 is already in use" error, you can manually clean up:
 
 ```bash
-# 手动清理端口占用
+# Manually clean up port usage
 lsof -ti :3000 | xargs kill -9
 ```
 
-**为什么会发生**: 在极少数情况下，Next.js 开发服务器可能没有正确终止，导致端口被占用。
+**Why this happens**: In rare cases, the Next.js development server may not terminate properly, causing the port to remain occupied.
 
-**预防措施**: 
-- 使用应用的退出菜单 (Cmd+Q) 或关闭按钮，而不是强制退出
-- 应用内置的清理机制会自动处理大部分情况
+**Prevention measures**: 
+- Use the app's exit menu (Cmd+Q) or close button instead of force quitting
+- The built-in cleanup mechanism will automatically handle most situations
 
 ### Common Solutions
 
-- **App won't start**: 应用启动时会自动检查并清理端口占用
+- **App won't start**: The app will automatically check and clean up port usage on startup
 - **Database issues**: Run `npm run db:migrate` to update database schema  
 - **Build errors**: Try `npm run build` to check for compilation issues
 
