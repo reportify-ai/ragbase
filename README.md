@@ -118,6 +118,31 @@ This project is licensed under the RAGBASE Open Source License (based on Apache 
 - UI components from [Shadcn UI](https://ui.shadcn.com/)
 - Database powered by [Drizzle ORM](https://orm.drizzle.team/)
 
+## Troubleshooting
+
+### Port 3000 Still in Use After Closing App
+
+**自动清理**: RAGBASE 应用已集成智能端口清理机制，关闭应用时会自动清理所有相关进程和端口占用。
+
+如果仍然遇到 "port 3000 is already in use" 错误，可以手动清理：
+
+```bash
+# 手动清理端口占用
+lsof -ti :3000 | xargs kill -9
+```
+
+**为什么会发生**: 在极少数情况下，Next.js 开发服务器可能没有正确终止，导致端口被占用。
+
+**预防措施**: 
+- 使用应用的退出菜单 (Cmd+Q) 或关闭按钮，而不是强制退出
+- 应用内置的清理机制会自动处理大部分情况
+
+### Common Solutions
+
+- **App won't start**: 应用启动时会自动检查并清理端口占用
+- **Database issues**: Run `npm run db:migrate` to update database schema  
+- **Build errors**: Try `npm run build` to check for compilation issues
+
 ## Support
 
 - 📧 Email: support@ragbase.app

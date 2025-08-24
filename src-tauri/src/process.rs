@@ -274,28 +274,27 @@ impl ProcessManager {
 
     /// Stop all processes
     pub fn stop_all_processes(&self) {
-        println!("[tauri/process] Stopping all processes...");
+        println!("[tauri/process] ===== STOPPING ALL PROCESSES =====");
         
         // Stop Next.js process
         if let Ok(mut guard) = self.next_process.lock() {
             if let Some(mut child) = guard.take() {
-                println!("[tauri/process] Stopping Next.js process (PID: {})...", child.id());
+                let pid = child.id();
+                println!("[tauri/process] Stopping Next.js process (PID: {})...", pid);
                 
                 // Try graceful shutdown first
                 let _ = child.kill();
                 
                 // Wait a bit for graceful shutdown
-                std::thread::sleep(std::time::Duration::from_millis(500));
+                std::thread::sleep(std::time::Duration::from_millis(1000));
                 
-                // Force kill if still running
+                // Check if process is still running
                 if let Ok(Some(_)) = child.try_wait() {
                     println!("[tauri/process] Next.js process stopped gracefully");
                 } else {
                     println!("[tauri/process] Force killing Next.js process tree...");
-                    // Force kill the entire process tree
-                    let _ = Command::new("pkill")
-                        .args(&["-P", &child.id().to_string()])
-                        .output();
+                    // Force kill the entire process tree using multiple approaches
+                    Self::force_kill_process_tree(pid);
                     let _ = child.kill();
                 }
             }
@@ -304,38 +303,134 @@ impl ProcessManager {
         // Stop background tasks process
         if let Ok(mut guard) = self.tasks_process.lock() {
             if let Some(mut child) = guard.take() {
-                println!("[tauri/process] Stopping background tasks process (PID: {})...", child.id());
+                let pid = child.id();
+                println!("[tauri/process] Stopping background tasks process (PID: {})...", pid);
                 
                 // Try graceful shutdown first
                 let _ = child.kill();
                 
                 // Wait a bit for graceful shutdown
-                std::thread::sleep(std::time::Duration::from_millis(500));
+                std::thread::sleep(std::time::Duration::from_millis(1000));
                 
-                // Force kill if still running
+                // Check if process is still running
                 if let Ok(Some(_)) = child.try_wait() {
                     println!("[tauri/process] Background tasks process stopped gracefully");
                 } else {
                     println!("[tauri/process] Force killing background tasks process tree...");
                     // Force kill the entire process tree
-                    let _ = Command::new("pkill")
-                        .args(&["-P", &child.id().to_string()])
-                        .output();
+                    Self::force_kill_process_tree(pid);
                     let _ = child.kill();
                 }
             }
         }
         
-        // Additional cleanup: kill any remaining node processes that might be related
-        println!("[tauri/process] Cleaning up any remaining related processes...");
+        // Additional comprehensive cleanup
+        Self::cleanup_remaining_processes();
+        
+        println!("[tauri/process] ===== ALL PROCESSES CLEANUP COMPLETED =====");
+    }
+
+    /// Force kill a process tree using multiple methods
+    fn force_kill_process_tree(pid: u32) {
+        println!("[tauri/process] Force killing process tree for PID: {}", pid);
+        
+        // Method 1: Kill child processes first
         let _ = Command::new("pkill")
-            .args(&["-f", "next dev"])
-            .output();
-        let _ = Command::new("pkill")
-            .args(&["-f", "tasks.js"])
+            .args(&["-P", &pid.to_string()])
             .output();
         
-        println!("[tauri/process] All processes stopped");
+        // Method 2: Kill the main process
+        let _ = Command::new("kill")
+            .args(&["-9", &pid.to_string()])
+            .output();
+        
+        // Method 3: macOS specific - kill process group
+        #[cfg(target_os = "macos")]
+        {
+            let _ = Command::new("pkill")
+                .args(&["-g", &pid.to_string()])
+                .output();
+        }
+        
+        std::thread::sleep(std::time::Duration::from_millis(200));
+    }
+    
+    /// Comprehensive cleanup of remaining processes
+    fn cleanup_remaining_processes() {
+        println!("[tauri/process] Performing comprehensive cleanup...");
+        
+        // Kill specific Next.js processes
+        let cleanup_patterns = [
+            "next dev",
+            "next start", 
+            "next-server",
+            "tasks.js",
+            "node.*3000",  // Any node process on port 3000
+        ];
+        
+        for pattern in &cleanup_patterns {
+            println!("[tauri/process] Cleaning up processes matching: {}", pattern);
+            let _ = Command::new("pkill")
+                .args(&["-f", pattern])
+                .output();
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+        
+        // Additional port-specific cleanup
+        Self::cleanup_port_processes(3000);
+        
+        // Final verification
+        std::thread::sleep(std::time::Duration::from_millis(500));
+        if Self::is_port_available(3000) {
+            println!("[tauri/process] ✅ Port 3000 is now available");
+        } else {
+            println!("[tauri/process] ⚠️  Port 3000 is still occupied, attempting final cleanup...");
+            Self::force_cleanup_port(3000);
+        }
+    }
+    
+    /// Cleanup processes using a specific port
+    fn cleanup_port_processes(port: u16) {
+        println!("[tauri/process] Cleaning up processes using port {}", port);
+        
+        // Use lsof to find processes using the port
+        if let Ok(output) = Command::new("lsof")
+            .args(&["-ti", &format!(":{}", port)])
+            .output() {
+            
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            for line in stdout.lines() {
+                if let Ok(pid) = line.trim().parse::<u32>() {
+                    println!("[tauri/process] Killing process {} using port {}", pid, port);
+                    let _ = Command::new("kill")
+                        .args(&["-9", &pid.to_string()])
+                        .output();
+                }
+            }
+        }
+    }
+    
+    /// Force cleanup port using multiple methods
+    fn force_cleanup_port(port: u16) {
+        println!("[tauri/process] Force cleaning port {}...", port);
+        
+        // Method 1: lsof + kill
+        let _ = Command::new("sh")
+            .args(&["-c", &format!("lsof -ti :{} | xargs kill -9", port)])
+            .output();
+        
+        // Method 2: netstat + kill (alternative approach)
+        let _ = Command::new("sh")
+            .args(&["-c", &format!("netstat -tulpn 2>/dev/null | grep :{} | awk '{{print $7}}' | cut -d/ -f1 | xargs kill -9", port)])
+            .output();
+        
+        std::thread::sleep(std::time::Duration::from_millis(500));
+        
+        if Self::is_port_available(port) {
+            println!("[tauri/process] ✅ Port {} successfully cleaned", port);
+        } else {
+            println!("[tauri/process] ❌ Port {} cleanup failed", port);
+        }
     }
 
     /// Check if processes are still running
