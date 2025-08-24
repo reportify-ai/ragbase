@@ -5,7 +5,8 @@ import {
   getChatMessages, 
   saveChatMessage, 
   deleteChatSession as deleteChatSessionFromDB,
-  updateChatSessionTitle
+  updateChatSessionTitle,
+  updateChatSessionKbIds
 } from "./db";
 
 // Use memory to store chat history for backward compatibility
@@ -122,8 +123,17 @@ export function getAllSessionIds(): string[] {
 export async function initializeSession(sessionId: string, kbIds?: number[], title?: string): Promise<void> {
   try {
     const existingSession = await getChatSession(sessionId);
+    
     if (!existingSession) {
       await createChatSession(sessionId, kbIds, title);
+    } else {
+      // Update existing session with new kbIds and title if provided
+      if (kbIds !== undefined) {
+        await updateChatSessionKbIds(sessionId, kbIds);
+      }
+      if (title && title !== existingSession.title) {
+        await updateChatSessionTitle(sessionId, title);
+      }
     }
   } catch (error) {
     console.error('Error initializing session:', error);

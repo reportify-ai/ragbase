@@ -22,9 +22,21 @@ export async function GET(req: NextRequest) {
     // Get chat history asynchronously (supports database)
     const history = await getChatHistoryAsync(sessionId);
     
-    console.log("Returning", history.length, "history messages for session");
+    // Also get session info to include knowledge base IDs
+    const { getChatSession } = await import('../../../../lib/chat/db');
+    const session = await getChatSession(sessionId);
     
-    return NextResponse.json({ history });
+    console.log("Returning", history.length, "history messages for session with kbIds:", session?.kbIds);
+    
+    return NextResponse.json({ 
+      history,
+      session: session ? {
+        kbIds: session.kbIds,
+        title: session.title,
+        createdAt: session.createdAt,
+        updatedAt: session.updatedAt
+      } : null
+    });
   } catch (error) {
     console.error("Get chat history error:", error);
     return NextResponse.json(
