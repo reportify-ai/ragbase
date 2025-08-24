@@ -126,11 +126,12 @@ export default function ChatHistoryPage() {
               {t('pages.chatHistory.title')}
             </h2>
             <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center"
               onClick={createNewChat}
-              className="flex items-center gap-2"
             >
-              <MessageSquarePlus className="w-4 h-4" />
-              {t('pages.chatHistory.newChat')}
+              <MessageSquarePlus className="w-4 h-4 mr-1" /> {t('pages.chatHistory.newChat')}
             </Button>
           </div>
 
