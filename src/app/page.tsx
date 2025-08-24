@@ -55,24 +55,24 @@ export default function HomePage() {
           const data = await response.json();
           if (Array.isArray(data) && data.length > 0) {
             setKbs(data);
-            // Default to select the first knowledge base (usually "Default Knowledge Base")
-            setSelectedKbs([data[0].name]);
+            // Default to no knowledge base selected
+            // setSelectedKbs([data[0].name]);
           } else {
             // If there is no knowledge base, display a default value
             setKbs([{ id: 1, name: "Default Knowledge Base", description: "System default knowledge base" }]);
-            setSelectedKbs(["Default Knowledge Base"]);
+            // setSelectedKbs(["Default Knowledge Base"]);
           }
         } else {
           console.error("Failed to load knowledge bases");
           // Use default value when loading fails
           setKbs([{ id: 1, name: "Default Knowledge Base", description: "System default knowledge base" }]);
-          setSelectedKbs(["Default Knowledge Base"]);
+          // setSelectedKbs(["Default Knowledge Base"]);
         }
       } catch (error) {
         console.error("Error loading knowledge bases:", error);
         // Use default value when error occurs
         setKbs([{ id: 1, name: "Default Knowledge Base", description: "System default knowledge base" }]);
-        setSelectedKbs(["Default Knowledge Base"]);
+        // setSelectedKbs(["Default Knowledge Base"]);
       } finally {
         setIsLoading(false);
       }

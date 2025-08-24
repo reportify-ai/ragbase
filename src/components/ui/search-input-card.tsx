@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useCallback, useMemo } from 'react';
 import { Send, Loader2, Database, Check, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip } from "@/components/ui/tooltip";
 
 interface KnowledgeBase {
   id: number;
@@ -116,6 +117,7 @@ export function SearchInputCard({
   // If inputRef is not provided, create an internal ref
   const internalInputRef = useRef<HTMLTextAreaElement>(null);
   const actualInputRef = inputRef || internalInputRef;
+  const [isKbDropdownOpen, setIsKbDropdownOpen] = useState(false);
   
   // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -138,37 +140,52 @@ export function SearchInputCard({
     ? selectedKbs[0] 
     : `Selected ${selectedKbs.length} knowledge bases`;
   
-  // Knowledge base selection dropdown menu
-  const KnowledgeBaseMenu = () => {
+  // Handle knowledge base toggle - 使用 useCallback 避免函数重新创建
+  const handleKbToggle = useCallback((kbName: string) => {
+    if (onToggleKb) {
+      onToggleKb(kbName);
+    }
+    // 不关闭下拉菜单，允许多选
+  }, [onToggleKb]);
+
+  // Knowledge base selection dropdown menu - 使用 useMemo 避免组件重新创建
+  const KnowledgeBaseMenu = useMemo(() => {
     if (!showKbSelector) return null;
     
+    // Determine if any knowledge base is selected for icon color
+    const hasSelection = selectedKbs.length > 0;
+    
     return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="flex items-center"
-            disabled={isLoadingKbs || disabled}
-          >
-            {isLoadingKbs ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-1 animate-spin" /> Loading knowledge bases...
-              </>
-            ) : (
-              <>
-                <Database className="w-4 h-4 mr-1" /> {selectedKbs.length === 0 ? "Select Knowledge Base" : selectedKbText}
-                <ChevronDown className="w-4 h-4 ml-1" />
-              </>
-            )}
-          </Button>
-        </DropdownMenuTrigger>
+      <DropdownMenu open={isKbDropdownOpen} onOpenChange={setIsKbDropdownOpen}>
+        <Tooltip content="知识库" side="top">
+          <DropdownMenuTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className={`flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none focus:bg-transparent dark:focus:bg-transparent active:bg-transparent dark:active:bg-transparent data-[state=open]:bg-transparent dark:data-[state=open]:bg-transparent ${
+                hasSelection 
+                  ? 'text-blue-600 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-400' 
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+              }`}
+              disabled={isLoadingKbs || disabled}
+            >
+              {isLoadingKbs ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Database className="w-4 h-4" />
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+        </Tooltip>
         <DropdownMenuContent align="start" className="w-47">
           {knowledgeBases.map((kb) => (
             <DropdownMenuItem
               key={kb.id}
-              onClick={() => onToggleKb && onToggleKb(kb.name)}
-              className="flex items-center justify-between"
+              onSelect={(event) => {
+                event.preventDefault(); // 阻止默认关闭行为
+                handleKbToggle(kb.name);
+              }}
+              className="flex items-center justify-between cursor-pointer"
             >
               <span>{kb.name}</span>
               {selectedKbs.includes(kb.name) && <Check className="w-4 h-4" />}
@@ -177,7 +194,16 @@ export function SearchInputCard({
         </DropdownMenuContent>
       </DropdownMenu>
     );
-  };
+  }, [
+    showKbSelector, 
+    selectedKbs, 
+    isKbDropdownOpen, 
+    setIsKbDropdownOpen, 
+    knowledgeBases, 
+    isLoadingKbs, 
+    disabled, 
+    handleKbToggle
+  ]);
 
   return (
     <Card className={`w-full py-3 ${className}`}>
@@ -196,7 +222,7 @@ export function SearchInputCard({
           <div className="flex justify-between items-center mt-2">
             <div className="flex items-center space-x-2">
               {leftActions}
-              <KnowledgeBaseMenu />
+              {KnowledgeBaseMenu}
             </div>
             <Button 
               type="submit" 
