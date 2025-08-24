@@ -136,15 +136,15 @@ function ChatPageContent() {
                 // setSelectedKbs([data[0].name]);
               }
             } else {
-              // Default to the first knowledge base
-              setSelectedKbs([data[0].name]);
+              // Default to no knowledge base selected
+              // setSelectedKbs([data[0].name]);
             }
           } else {
             // If no knowledge base, use default value
             const defaultKb = { id: 1, name: t('pages.chat.defaultKnowledgeBase'), description: t('pages.chat.defaultKnowledgeBaseDesc') };
             setKbs([defaultKb]);
             setKbIdToNameMap({ 1: t('pages.chat.defaultKnowledgeBase') });
-            setSelectedKbs([t('pages.chat.defaultKnowledgeBase')]);
+            // setSelectedKbs([t('pages.chat.defaultKnowledgeBase')]);
           }
         } else {
           console.error("Failed to load knowledge bases");
@@ -152,7 +152,7 @@ function ChatPageContent() {
           const defaultKb = { id: 1, name: t('pages.chat.defaultKnowledgeBase'), description: t('pages.chat.defaultKnowledgeBaseDesc') };
           setKbs([defaultKb]);
           setKbIdToNameMap({ 1: t('pages.chat.defaultKnowledgeBase') });
-          setSelectedKbs([t('pages.chat.defaultKnowledgeBase')]);
+          // setSelectedKbs([t('pages.chat.defaultKnowledgeBase')]);
         }
       } catch (error) {
         console.error("Error loading knowledge bases:", error);
@@ -160,7 +160,7 @@ function ChatPageContent() {
         const defaultKb = { id: 1, name: t('pages.chat.defaultKnowledgeBase'), description: t('pages.chat.defaultKnowledgeBaseDesc') };
         setKbs([defaultKb]);
         setKbIdToNameMap({ 1: t('pages.chat.defaultKnowledgeBase') });
-        setSelectedKbs([t('pages.chat.defaultKnowledgeBase')]);
+        // setSelectedKbs([t('pages.chat.defaultKnowledgeBase')]);
       } finally {
         setIsLoadingKbs(false);
       }
@@ -450,6 +450,9 @@ function ChatPageContent() {
     setSelectedMessageIndex(null);
     setShowRelatedDocs(false);
     setIsLoading(false);
+    
+    // Reset knowledge base selection for new chat sessions
+    setSelectedKbs([]);
     
     // Reset scroll tracking
     prevMessageCountRef.current = 0;
