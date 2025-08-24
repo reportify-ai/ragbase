@@ -136,7 +136,10 @@ export function Tooltip({
   }
   
   // Clone the child element and add our event handlers
-  const childElement = React.Children.only(children) as React.ReactElement
+  const childElement = React.Children.only(children) as React.ReactElement<{
+    onMouseEnter?: (e: React.MouseEvent) => void
+    onMouseLeave?: (e: React.MouseEvent) => void
+  }>
   
   const handleChildMouseEnter = (e: React.MouseEvent) => {
     handleMouseEnter()
