@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Home,
@@ -44,6 +44,7 @@ interface SidebarMenuProps {
 
 export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarMenuProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { t, loading } = useTranslations();
   
   // State for chat history
@@ -349,8 +350,8 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
                 variant="ghost"
                 className={`w-full justify-start space-x-3 ${isActive ? "bg-gray-200 dark:bg-gray-700 text-black dark:text-white" : ""}`}
                 onClick={() => {
-                  // 生成新的会话ID并跳转
-                  window.location.href = `/chat?sessionId=${uuidv4()}`;
+                  // Generate new session ID and navigate
+                  router.push(`/chat?sessionId=${uuidv4()}`);
                 }}
               >
                 <item.icon className="w-5 h-5" />
@@ -407,7 +408,7 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
                   className="group relative flex items-center hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 rounded-md h-9 px-3 mx-2 cursor-pointer"
                 onClick={() => {
                   if (editingSessionId !== session.sessionId) {
-                    window.location.href = `/chat?sessionId=${session.sessionId}`;
+                    router.push(`/chat?sessionId=${session.sessionId}`);
                   }
                 }}
               >

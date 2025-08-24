@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/card";
 import { useState, useEffect, useRef } from "react";
 import { Modal } from "@/components/ui/modal";
-import { SidebarMenu } from "@/components/ui/menu";
+
 import { FileIcon } from "@/components/ui/file-icon";
 import { z } from 'zod';
 import { KbModal } from "@/components/ui/kb-modal";
@@ -294,7 +294,6 @@ export default function KbPage() {
 
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-      <SidebarMenu />
       <main className="flex-1 p-8 overflow-y-auto">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-6">
@@ -444,7 +443,7 @@ export default function KbPage() {
                 )}
                 <Button size="sm" variant="ghost" onClick={() => setFilePage(p => Math.min(totalPages, p+1))} disabled={filePage === totalPages}>&gt;</Button>
                 
-                {/* 页数跳转输入框 */}
+                {/* Page jump input */}
                 <input
                   type="number"
                   min={1}

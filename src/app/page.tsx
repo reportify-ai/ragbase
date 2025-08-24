@@ -23,7 +23,7 @@ import {
 import { SearchInputCard } from "@/components/ui/search-input-card";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { SidebarMenu } from "@/components/ui/menu";
+
 import { useState, useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { useTranslations } from '@/i18n/hooks';
@@ -143,107 +143,103 @@ export default function HomePage() {
     : t('pages.chat.selectedKnowledgeBases', { count: selectedKbs.length });
   
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-      <SidebarMenu />
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center justify-center p-8">
-        <div className="w-full max-w-3xl flex flex-col items-center space-y-8">
-          <div className="text-center">
-            <h2 className="text-5xl font-bold text-gray-800 dark:text-white">
-              {t('pages.home.title')}
-            </h2>
-            <p className="text-gray-500 dark:text-gray-400 mt-2">
-              {t('pages.home.subtitle')}
-            </p>
-          </div>
+    <div className="flex flex-col items-center justify-center p-8 h-full">
+      <div className="w-full max-w-3xl flex flex-col items-center space-y-8">
+        <div className="text-center">
+          <h2 className="text-5xl font-bold text-gray-800 dark:text-white">
+            {t('pages.home.title')}
+          </h2>
+          <p className="text-gray-500 dark:text-gray-400 mt-2">
+            {t('pages.home.subtitle')}
+          </p>
+        </div>
 
-          {/* Chat Input */}
-          <SearchInputCard
-            value={question}
-            onChange={setQuestion}
-            onSubmit={handleSearchSubmit}
-            isLoading={isLoading}
-            placeholder={t('pages.home.placeholder')}
-            inputHeight="h-24"
-            contentHeight="h-auto"
-            className="py-3"
-            inputRef={searchInputRef}
-            knowledgeBases={kbs}
-            selectedKbs={selectedKbs}
-            onToggleKb={toggleKb}
-            isLoadingKbs={isLoading}
-          />
+        {/* Chat Input */}
+        <SearchInputCard
+          value={question}
+          onChange={setQuestion}
+          onSubmit={handleSearchSubmit}
+          isLoading={isLoading}
+          placeholder={t('pages.home.placeholder')}
+          inputHeight="h-24"
+          contentHeight="h-auto"
+          className="py-3"
+          inputRef={searchInputRef}
+          knowledgeBases={kbs}
+          selectedKbs={selectedKbs}
+          onToggleKb={toggleKb}
+          isLoadingKbs={isLoading}
+        />
 
-          {/* Info Cards */}
-          <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="gap-2">
-              <CardHeader>
-                <CardTitle>{t('pages.home.recentChats')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {t('pages.home.recentChatsDesc')}
-                </p>
-                <Button
-                  variant="link"
-                  className="p-0 mt-3 h-auto text-left justify-start -ml-3 text-black dark:text-white"
-                  onClick={() => router.push('/chat/history')}
-                >
-                  {t('pages.home.viewHistory')} <ArrowRight className="w-4 h-4 ml-1" />
-                </Button>
-              </CardContent>
-            </Card>
-            <Card className="gap-2">
-              <CardHeader>
-                <CardTitle>{t('pages.home.knowledgeBaseManagement')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {t('pages.home.knowledgeBaseManagementDesc')}
-                </p>
-                <Button asChild
-                  variant="link"
-                  className="p-0 mt-3 h-auto text-left justify-start -ml-3 text-black dark:text-white"
-                >
-                  <Link href="/kb">{t('pages.home.manageKnowledgeBase')} <ArrowRight className="w-4 h-4 ml-1" /></Link>
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+        {/* Info Cards */}
+        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="gap-2">
+            <CardHeader>
+              <CardTitle>{t('pages.home.recentChats')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {t('pages.home.recentChatsDesc')}
+              </p>
+              <Button
+                variant="link"
+                className="p-0 mt-3 h-auto text-left justify-start -ml-3 text-black dark:text-white"
+                onClick={() => router.push('/chat/history')}
+              >
+                {t('pages.home.viewHistory')} <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </CardContent>
+          </Card>
+          <Card className="gap-2">
+            <CardHeader>
+              <CardTitle>{t('pages.home.knowledgeBaseManagement')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {t('pages.home.knowledgeBaseManagementDesc')}
+              </p>
+              <Button asChild
+                variant="link"
+                className="p-0 mt-3 h-auto text-left justify-start -ml-3 text-black dark:text-white"
+              >
+                <Link href="/kb">{t('pages.home.manageKnowledgeBase')} <ArrowRight className="w-4 h-4 ml-1" /></Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
 
-          {/* Recommended Questions */}
-          <div className="w-full">
-            <h3 className="font-semibold text-gray-700 dark:text-gray-200 mb-2">
-              {t('pages.home.recommendedQuestions')}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {[
-                t('pages.home.questions.0'),
-                t('pages.home.questions.1'),
-                t('pages.home.questions.2'),
-                t('pages.home.questions.3'),
-              ].filter(q => q && q !== '...').map((q: string, index: number) => (
-                <Button
-                  key={`question-${index}`}
-                  variant="outline"
-                  className="text-left justify-start h-auto whitespace-normal w-full"
-                  onClick={() => {
-                    setQuestion(q);
-                    
-                    // If loading, do not execute operation
-                    if (isLoading) return;
-                    
-                    // Use existing processing function
-                    handleSearchSubmit();
-                  }}
-                >
-                  {q}
-                </Button>
-              ))}
-            </div>
+        {/* Recommended Questions */}
+        <div className="w-full">
+          <h3 className="font-semibold text-gray-700 dark:text-gray-200 mb-2">
+            {t('pages.home.recommendedQuestions')}
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              t('pages.home.questions.0'),
+              t('pages.home.questions.1'),
+              t('pages.home.questions.2'),
+              t('pages.home.questions.3'),
+            ].filter(q => q && q !== '...').map((q: string, index: number) => (
+              <Button
+                key={`question-${index}`}
+                variant="outline"
+                className="text-left justify-start h-auto whitespace-normal w-full"
+                onClick={() => {
+                  setQuestion(q);
+                  
+                  // If loading, do not execute operation
+                  if (isLoading) return;
+                  
+                  // Use existing processing function
+                  handleSearchSubmit();
+                }}
+              >
+                {q}
+              </Button>
+            ))}
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

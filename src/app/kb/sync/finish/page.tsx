@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { SidebarMenu } from "@/components/ui/menu";
+
 import { CheckCircle2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
@@ -72,18 +72,15 @@ function FinishPageContent() {
 export default function KbSyncFinishPage() {
   const { t } = useTranslations();
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-      <SidebarMenu />
-      <main className="flex-1 p-8 overflow-y-auto">
-        <div className="flex items-center text-sm text-gray-500 mb-2">
-          <Link href="/kb" className="hover:underline">{t('pages.kb.title')}</Link>
-          <span className="mx-2">/</span>
-          <span className="text-gray-700 dark:text-gray-200 font-medium">{t('pages.kbSync.syncComplete')}</span>
-        </div>
-        <Suspense fallback={<div className="text-center py-10">{t('common.messages.loading')}</div>}>
-          <FinishPageContent />
-        </Suspense>
-      </main>
+    <div className="p-8 overflow-y-auto h-full">
+      <div className="flex items-center text-sm text-gray-500 mb-2">
+        <Link href="/kb" className="hover:underline">{t('pages.kb.title')}</Link>
+        <span className="mx-2">/</span>
+        <span className="text-gray-700 dark:text-gray-200 font-medium">{t('pages.kbSync.syncComplete')}</span>
+      </div>
+      <Suspense fallback={<div className="text-center py-10">{t('common.messages.loading')}</div>}>
+        <FinishPageContent />
+      </Suspense>
     </div>
   );
 } 
