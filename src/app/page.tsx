@@ -157,7 +157,7 @@ export default function HomePage() {
     : t('pages.chat.selectedKnowledgeBases', { count: selectedKbs.length });
   
   return (
-    <div className="flex flex-col items-center justify-start p-8 h-full pt-16">
+    <div className="flex flex-col items-center justify-start p-8 h-full pt-14">
       <div className="w-full max-w-3xl flex flex-col items-center space-y-8">
         <div className="text-center">
           <h2 className="text-5xl font-bold text-gray-800 dark:text-white">
