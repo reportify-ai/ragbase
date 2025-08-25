@@ -101,7 +101,7 @@ export function SearchInputCard({
   onSubmit,
   isLoading = false,
   disabled = false,
-  placeholder = "输入您的问题...",
+  placeholder = "Enter your question...",
   inputHeight = "h-12",
   contentHeight,
   minHeight = "32px",
@@ -138,17 +138,17 @@ export function SearchInputCard({
   // Display selected knowledge base text
   const selectedKbText = selectedKbs.length === 1 
     ? selectedKbs[0] 
-    : `已选择 ${selectedKbs.length} 个知识库`;
+    : `Selected ${selectedKbs.length} knowledge bases`;
   
-  // Handle knowledge base toggle - 使用 useCallback 避免函数重新创建
+  // Handle knowledge base toggle - Use useCallback to avoid function recreation
   const handleKbToggle = useCallback((kbName: string) => {
     if (onToggleKb) {
       onToggleKb(kbName);
     }
-    // 不关闭下拉菜单，允许多选
+    // Don't close dropdown menu, allow multiple selection
   }, [onToggleKb]);
 
-  // Knowledge base selection dropdown menu - 使用 useMemo 避免组件重新创建
+  // Knowledge base selection dropdown menu - Use useMemo to avoid component recreation
   const KnowledgeBaseMenu = useMemo(() => {
     if (!showKbSelector) return null;
     
@@ -157,7 +157,7 @@ export function SearchInputCard({
     
     return (
       <DropdownMenu open={isKbDropdownOpen} onOpenChange={setIsKbDropdownOpen}>
-        <Tooltip content="知识库" side="top">
+        <Tooltip content="Knowledge Base" side="top">
           <DropdownMenuTrigger asChild>
             <Button 
               variant="ghost" 
@@ -182,7 +182,7 @@ export function SearchInputCard({
             <DropdownMenuItem
               key={kb.id}
               onSelect={(event) => {
-                event.preventDefault(); // 阻止默认关闭行为
+                event.preventDefault(); // Prevent default close behavior
                 handleKbToggle(kb.name);
               }}
               className="flex items-center justify-between cursor-pointer"

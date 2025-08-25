@@ -18,7 +18,7 @@ export const FileOpener: React.FC<FileOpenerProps> = ({
 
   const handleOpenFile = async () => {
     if (!filePath) {
-      setError('文件路径不能为空');
+      setError('File path cannot be empty');
       return;
     }
 
@@ -26,21 +26,21 @@ export const FileOpener: React.FC<FileOpenerProps> = ({
     setError(null);
 
     try {
-      // 检查 electronAPI 是否可用
+      // Check if electronAPI is available
       if (!window.electronAPI) {
-        throw new Error('非 Electron 环境，无法打开文件');
+        throw new Error('Not in Electron environment, cannot open file');
       }
 
       const result = await window.electronAPI.openFile(filePath);
       
       if (!result.success) {
-        throw new Error(result.error || '打开文件失败');
+        throw new Error(result.error || 'Failed to open file');
       }
     } catch (err: any) {
-      console.error('打开文件出错:', err);
-      setError(err.message || '打开文件失败');
+      console.error('Error opening file:', err);
+      setError(err.message || 'Failed to open file');
       
-      // 显示错误提示 3 秒后自动清除
+      // Show error message and auto clear after 3 seconds
       setTimeout(() => setError(null), 3000);
     } finally {
       setIsOpening(false);
@@ -54,7 +54,7 @@ export const FileOpener: React.FC<FileOpenerProps> = ({
         variant="ghost"
         onClick={handleOpenFile}
         disabled={isOpening}
-        title="用系统默认程序打开文件"
+        title="Open file with system default program"
         className={`${isOpening ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         {isOpening ? (
@@ -62,7 +62,7 @@ export const FileOpener: React.FC<FileOpenerProps> = ({
         ) : (
           <Eye className="w-4 h-4" />
         )}
-        {!iconOnly && <span className="ml-1">打开</span>}
+        {!iconOnly && <span className="ml-1">Open</span>}
       </Button>
       
       {error && (
