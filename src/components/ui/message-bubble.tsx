@@ -35,7 +35,7 @@ export function MessageBubble({
   isLoading = false,
   hasRelatedDocs = false,
   onShowRelatedDocs,
-  relatedDocsCount = 0, // 默认为0
+  relatedDocsCount = 0, // Default to 0
 }: MessageBubbleProps) {
   const { t } = useTranslations();
   const isUser = role === "user";
@@ -231,7 +231,7 @@ export function MessageBubble({
       {isUser && (
         <div className="flex" style={{ alignItems: isSingleLine ? "center" : "flex-start" }}>
           <Avatar className="ml-2 mt-0">
-            <AvatarFallback className="bg-gray-400 text-white">我</AvatarFallback>
+            <AvatarFallback className="bg-gray-400 text-white">U</AvatarFallback>
           </Avatar>
         </div>
       )}

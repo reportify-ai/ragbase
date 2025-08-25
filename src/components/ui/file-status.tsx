@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslations } from '@/i18n/hooks';
 
-// 文件状态映射
+// File status mapping
 export const getFileStatusText = (status: number | null | undefined): string => {
   const { t } = useTranslations();
   
@@ -19,7 +19,7 @@ export const getFileStatusText = (status: number | null | undefined): string => 
   }
 };
 
-// 文件状态样式映射
+// File status style mapping
 export const getFileStatusStyle = (status: number | null | undefined): string => {
   switch (status) {
     case 0: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';

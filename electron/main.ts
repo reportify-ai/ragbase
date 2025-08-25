@@ -11,12 +11,12 @@ let tasksProcess: import('child_process').ChildProcess | undefined;
 const NEXT_PORT = 3000;
 const isDev = !app.isPackaged;
 
-// 设置数据存储目录
+// Set data storage directory
 const DATA_DIR = isDev
   ? path.join(__dirname, '../../data')
   : path.join(os.homedir(), '.ragbase');
 
-// 确保数据目录存在
+// Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
   try {
     fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -26,11 +26,11 @@ if (!fs.existsSync(DATA_DIR)) {
   }
 }
 
-// 设置全局环境变量
+// Set global environment variable
 process.env.DATA_DIR = DATA_DIR;
 console.log(`Data directory set to: ${DATA_DIR}`);
 
-// 执行数据库迁移
+// Execute database migration
 function runDatabaseMigration() {
   console.log('[electron/main] Running database migration');
   const migrationPath = isDev

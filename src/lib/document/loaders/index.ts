@@ -176,7 +176,7 @@ export class DocumentLoader {
     const mimeType = this.getMimeType(filePath);
     
     if (!mimeType) {
-      throw new Error(`不支持的文件类型: ${ext}`);
+      throw new Error(`Unsupported file type: ${ext}`);
     }
 
     const stats = await fs.stat(filePath);
@@ -226,7 +226,7 @@ export class DocumentLoader {
           })
         );
       } else {
-        throw new Error(`未实现的文件类型处理器: ${ext}`);
+        throw new Error(`Unimplemented file type handler: ${ext}`);
       }
 
       return {

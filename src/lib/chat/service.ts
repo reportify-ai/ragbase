@@ -77,7 +77,7 @@ export async function createChatChainWithKB(
   kbIds: number[],
   history: ChatMessage[] = []
 ): Promise<ChatChainWithDocs> {
-  // 创建检索器数组
+  // Create retriever array
   const retrievers = await Promise.all(
     kbIds.map(async (kbId) => {
       const tableName = `kb_${kbId}`;

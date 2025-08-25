@@ -19,7 +19,7 @@ export function useTranslations() {
         setMessages(msgs);
       } catch (error) {
         console.error('Failed to load messages:', error);
-        // Fallback to Chinese
+        // Fallback to English
         const zhMessages = await getMessages('zh');
         setMessages(zhMessages);
         setLocale('zh');

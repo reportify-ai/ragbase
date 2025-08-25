@@ -3,7 +3,7 @@ import { locales, type Locale } from './config';
 // Get user's preferred language
 export function getPreferredLocale(): Locale {
   if (typeof window === 'undefined') {
-    return 'zh'; // Default to Chinese on server side
+    return 'en'; // Default to English on server side
   }
 
   // Get user language from localStorage
@@ -18,7 +18,7 @@ export function getPreferredLocale(): Locale {
     return browserLocale;
   }
 
-  return 'zh'; // Default to Chinese
+  return 'en'; // Default to English
 }
 
 // Set user language preference
@@ -36,7 +36,7 @@ export async function getMessages(locale: Locale) {
   } catch (error) {
     console.error(`Failed to load messages for locale: ${locale}`, error);
     // Fallback to default language
-    const defaultMessages = await import(`./locales/zh.json`);
+    const defaultMessages = await import(`./locales/en.json`);
     return defaultMessages.default;
   }
 } 
