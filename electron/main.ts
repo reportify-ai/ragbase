@@ -3,6 +3,7 @@ import { spawn } from 'child_process';
 import path from 'path';
 import http from 'http';
 import fs from 'fs';
+import os from 'os';
 
 let mainWindow: Electron.BrowserWindow | null = null;
 let nextProcess: import('child_process').ChildProcess | undefined;
@@ -13,7 +14,7 @@ const isDev = !app.isPackaged;
 // 设置数据存储目录
 const DATA_DIR = isDev
   ? path.join(__dirname, '../../data')
-  : path.join(process.resourcesPath, 'data');
+  : path.join(os.homedir(), '.ragbase');
 
 // 确保数据目录存在
 if (!fs.existsSync(DATA_DIR)) {
@@ -76,7 +77,7 @@ ipcMain.handle('open-file', async (_, filePath) => {
   try {
     console.log(`[electron/main] Opening file: ${filePath}`);
     if (!fs.existsSync(filePath)) {
-      return { success: false, error: '文件不存在' };
+      return { success: false, error: 'File not found' };
     }
     
     await shell.openPath(filePath);
@@ -85,7 +86,7 @@ ipcMain.handle('open-file', async (_, filePath) => {
     console.error(`[electron/main] Failed to open file: ${filePath}`, error);
     return { 
       success: false, 
-      error: error instanceof Error ? error.message : '打开文件失败'
+      error: error instanceof Error ? error.message : 'Failed to open file'
     };
   }
 });
@@ -167,10 +168,8 @@ function createWindow(): void {
 
 app.on('ready', async () => {
   try {
-    // 先执行数据库迁移
     await runDatabaseMigration();
 
-    // 然后启动应用
     startNext();
     startTasks();
     waitForNextReady(NEXT_PORT, createWindow);
