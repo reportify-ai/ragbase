@@ -331,7 +331,7 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
     <aside className="w-64 bg-white dark:bg-gray-800 flex flex-col min-h-screen">
       {/* Header with Settings - Always show Settings button */}
       <div 
-        className="pt-3 pb-1 flex items-center justify-between pr-2 pl-4 bg-white dark:bg-gray-800"
+        className="pt-3 pb-1 flex items-center justify-between pr-2 pl-3 bg-white dark:bg-gray-800"
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       >
         {/* Left: Avatar only for Windows/Linux, spacer for macOS */}
