@@ -73,7 +73,7 @@
       "recentChats": "Recent Chats",
       "recentChatsDesc": "Explore your chat history and keep your memories.",
       "viewHistory": "View Chat History",
-      "knowledgeBaseManagement": "Knowledge Base Management",
+      "knowledgeBaseManagement": "Knowledge Base",
       "knowledgeBaseManagementDesc": "Manage your knowledge bases, upload new documents or sync directories",
       "manageKnowledgeBase": "Manage Knowledge Base",
       "recommendedQuestions": "Recommended Questions",
@@ -102,7 +102,7 @@
       "relevance": "Relevance"
     },
     "kb": {
-      "title": "Knowledge Base Management",
+      "title": "Knowledge Base",
       "createKnowledgeBase": "Create Knowledge Base",
       "editKnowledgeBase": "Edit Knowledge Base",
       "knowledgeBaseName": "Knowledge Base Name",

@@ -15,7 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -287,6 +287,7 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
       <aside className="w-64 bg-white dark:bg-gray-800 flex flex-col min-h-screen">
         <div className="p-4 flex items-center space-x-3 border-b dark:border-gray-700">
           <Avatar>
+            <AvatarImage src="/icon.png" alt={appName} />
             <AvatarFallback className="bg-black text-white dark:bg-white dark:text-black">
               {avatarText}
             </AvatarFallback>
@@ -328,6 +329,7 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
       {/* Logo Header */}
       <div className="p-4 flex items-center space-x-3 border-b dark:border-gray-700">
         <Avatar>
+          <AvatarImage src="/icon.png" alt={appName} />
           <AvatarFallback className="bg-black text-white dark:bg-white dark:text-black">
             {avatarText}
           </AvatarFallback>
