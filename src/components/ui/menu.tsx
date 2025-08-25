@@ -288,18 +288,37 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
   if (loading) {
     return (
       <aside className="w-64 bg-white dark:bg-gray-800 flex flex-col min-h-screen">
-        <div className="p-4 flex items-center space-x-3 border-b dark:border-gray-700">
-          <Avatar>
-            <AvatarImage src="/icon.png" alt={appName} />
-            <AvatarFallback className="bg-black text-white dark:bg-white dark:text-black">
-              {avatarText}
-            </AvatarFallback>
-          </Avatar>
-          <h1 className="text-xl font-bold text-gray-800 dark:text-white">
-            {appName}
-          </h1>
+        {/* Header with Settings - Same as loaded state */}
+        <div 
+          className="pt-3 pb-1 flex items-center justify-between pr-2 pl-4 bg-white dark:bg-gray-800"
+          style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+        >
+          {/* Left: Avatar only for Windows/Linux, spacer for macOS */}
+          {isWindowsOrLinux ? (
+            <Avatar className="w-8 h-8">
+              <AvatarImage src="/icon.png" alt={appName} />
+              <AvatarFallback className="bg-black text-white dark:bg-white dark:text-black text-sm">
+                {avatarText}
+              </AvatarFallback>
+            </Avatar>
+          ) : (
+            <div></div>
+          )}
+          
+          {/* Right: Settings - Always show */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="p-0"
+            disabled
+            style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+          >
+            <Settings2 className="size-5 !text-gray-500 dark:!text-gray-300" />
+          </Button>
         </div>
-        <nav className="flex-1 p-2 space-y-1">
+        
+        {/* Main Navigation */}
+        <nav className="p-2 space-y-1">
           {menu.map((item, index) => (
             <Button
               key={`skeleton-${item.href}`}
@@ -312,16 +331,24 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
             </Button>
           ))}
         </nav>
-        <div className="p-2 border-t dark:border-gray-700">
-          <Button
-            key="skeleton-settings"
-            variant="ghost"
-            className="w-full justify-start space-x-3"
-            disabled
-          >
-            <Settings className="w-5 h-5" />
-            <span className="bg-gray-200 dark:bg-gray-700 h-4 rounded animate-pulse flex-1"></span>
-          </Button>
+
+        {/* Chat History Section - Same skeleton structure */}
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-700">
+            <div className="flex items-center space-x-2">
+              <History className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+              <span className="bg-gray-200 dark:bg-gray-600 h-4 w-16 rounded animate-pulse"></span>
+            </div>
+          </div>
+          <div className="flex-1 overflow-hidden p-2 space-y-1">
+            {/* Loading skeleton for chat items */}
+            {[1, 2, 3].map((_, index) => (
+              <div key={`chat-skeleton-${index}`} className="p-2 rounded group relative">
+                <div className="bg-gray-200 dark:bg-gray-600 h-4 w-full rounded animate-pulse mb-1"></div>
+                <div className="bg-gray-200 dark:bg-gray-600 h-3 w-3/4 rounded animate-pulse"></div>
+              </div>
+            ))}
+          </div>
         </div>
       </aside>
     );
