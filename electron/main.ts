@@ -182,17 +182,9 @@ function createWindow(): void {
     maximizable: true,
     closable: true,
     resizable: true,
-    // Windows 特定 - 自定义标题栏覆盖层
-    ...(process.platform === 'win32' && {
-      titleBarOverlay: {
-        color: '#00000000',      // 完全透明背景
-        symbolColor: '#666666',   // 按钮图标颜色
-        height: 32               // 最小按钮区域高度
-      }
-    }),
-    // Linux 特定 - 完全隐藏窗口装饰（因为titleBarOverlay在大多数Linux桌面环境不支持）
-    ...(process.platform === 'linux' && {
-      frame: false  // 完全移除窗口边框和标题栏
+    // Windows/Linux 特定 - 使用自定义窗口控制
+    ...(process.platform !== 'darwin' && {
+      frame: false  // 完全移除窗口边框和标题栏，使用自定义控制
     }),
     webPreferences: {
       nodeIntegration: false,
