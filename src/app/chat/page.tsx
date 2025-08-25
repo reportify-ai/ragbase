@@ -774,7 +774,7 @@ function ChatPageContent() {
           <div className="flex-1 overflow-y-auto" ref={chatContainerRef}>
             <div className={`mx-auto ${showRelatedDocs ? 'max-w-3xl' : 'max-w-3xl'}`}>
               {/* Header - now inside scrollable area */}
-              <div className="p-8 pb-0">
+              <div className="pt-8 pb-0">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
@@ -795,7 +795,7 @@ function ChatPageContent() {
               </div>
               
               {/* Messages area */}
-              <div className="px-8 py-6 pb-32">
+              <div className="py-6 pb-32">
                 <div className="mb-4 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded px-4 py-2">
                   {t('pages.chat.description')}
                 </div>
