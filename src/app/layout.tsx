@@ -30,8 +30,15 @@ export default function RootLayout({
       >
         <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
           <SidebarMenu />
-          <main className="flex-1 overflow-hidden">
-            {children}
+          <main className="flex-1 overflow-hidden relative">
+            {/* Draggable header area */}
+            <div 
+              className="absolute top-0 left-0 right-0 h-8 z-10 pointer-events-none"
+              style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+            />
+            <div className="h-full" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+              {children}
+            </div>
           </main>
         </div>
       </body>

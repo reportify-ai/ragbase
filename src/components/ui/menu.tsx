@@ -13,6 +13,7 @@ import {
   Trash2,
   Check,
   X,
+  Settings2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -326,17 +327,22 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
 
   return (
     <aside className="w-64 bg-white dark:bg-gray-800 flex flex-col min-h-screen">
-      {/* Logo Header */}
-      <div className="p-4 flex items-center space-x-3 border-b dark:border-gray-700">
-        <Avatar>
-          <AvatarImage src="/icon.png" alt={appName} />
-          <AvatarFallback className="bg-black text-white dark:bg-white dark:text-black">
-            {avatarText}
-          </AvatarFallback>
-        </Avatar>
-        <h1 className="text-xl font-bold text-gray-800 dark:text-white">
-          {appName}
-        </h1>
+      {/* Header with Settings */}
+      <div 
+        className="pt-3 pb-1 flex items-center justify-end pr-2 pl-4 bg-white dark:bg-gray-800" 
+        style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+      >
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className="p-0"
+          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+        >
+          <Link href="/settings">
+            <Settings2 className="size-5 !text-gray-500 dark:!text-gray-300" />
+          </Link>
+        </Button>
       </div>
       
       {/* Main Navigation */}
@@ -498,19 +504,7 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
           ) : null}
         </div>
       </div>
-      {/* Settings Section */}
-      <div className="p-2 border-t dark:border-gray-700 flex-shrink-0">
-        <Button
-          asChild
-          variant="ghost"
-          className={`w-full justify-start space-x-3 ${pathname === '/settings' ? 'bg-gray-200 dark:bg-gray-700 text-black dark:text-white' : ''}`}
-        >
-          <Link href="/settings">
-            <Settings className="w-5 h-5" />
-            <span>{t('components.menu.settings')}</span>
-          </Link>
-        </Button>
-      </div>
+
       
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog

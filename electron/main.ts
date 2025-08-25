@@ -147,6 +147,26 @@ function createWindow(): void {
   const windowOptions: BrowserWindowConstructorOptions = {
     width: 1200,
     height: 800,
+    minWidth: 800,
+    minHeight: 600,
+    // 系统栏控制选项
+    titleBarStyle: process.platform === 'darwin' ? 'hidden' : 'default',
+    // macOS 上精确控制按钮位置
+    ...(process.platform === 'darwin' && {
+      trafficLightPosition: { x: 14, y: 20 }
+    }),
+    minimizable: true,
+    maximizable: true,
+    closable: true,
+    resizable: true,
+    // Windows 下的标题栏覆盖层（可选）
+    ...(process.platform === 'win32' && {
+      titleBarOverlay: {
+        color: '#ffffff',
+        symbolColor: '#000000',
+        height: 48
+      }
+    }),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
