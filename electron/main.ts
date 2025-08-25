@@ -91,6 +91,29 @@ ipcMain.handle('open-file', async (_, filePath) => {
   }
 });
 
+// 窗口控制 API
+ipcMain.handle('minimize-window', () => {
+  if (mainWindow) {
+    mainWindow.minimize();
+  }
+});
+
+ipcMain.handle('maximize-window', () => {
+  if (mainWindow) {
+    if (mainWindow.isMaximized()) {
+      mainWindow.restore();
+    } else {
+      mainWindow.maximize();
+    }
+  }
+});
+
+ipcMain.handle('close-window', () => {
+  if (mainWindow) {
+    mainWindow.close();
+  }
+});
+
 function startNext(): void {
   const nextPath = isDev
     ? path.join(__dirname, '../../node_modules/next/dist/bin/next')
@@ -159,13 +182,17 @@ function createWindow(): void {
     maximizable: true,
     closable: true,
     resizable: true,
-    // Windows/Linux - hide title bar but keep buttons
-    ...(process.platform !== 'darwin' && {
+    // Windows 特定 - 自定义标题栏覆盖层
+    ...(process.platform === 'win32' && {
       titleBarOverlay: {
-        color: '#00000000',      // completely transparent background
-        symbolColor: '#666666',   // button icon color
-        height: 32               // minimum button area height
+        color: '#00000000',      // 完全透明背景
+        symbolColor: '#666666',   // 按钮图标颜色
+        height: 32               // 最小按钮区域高度
       }
+    }),
+    // Linux 特定 - 完全隐藏窗口装饰（因为titleBarOverlay在大多数Linux桌面环境不支持）
+    ...(process.platform === 'linux' && {
+      frame: false  // 完全移除窗口边框和标题栏
     }),
     webPreferences: {
       nodeIntegration: false,

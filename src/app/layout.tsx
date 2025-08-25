@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SidebarMenu } from "@/components/ui/menu";
+import { WindowControls } from "@/components/ui/window-controls";
 import { usePlatform } from "@/hooks/usePlatform";
 
 const geistSans = Geist({
@@ -42,10 +43,12 @@ export default function RootLayout({
             <main className="flex-1 overflow-hidden flex flex-col relative">
               {/* Title bar for Windows/Linux - 32px height */}
               <div 
-                className="h-8 bg-gray-200 dark:bg-gray-700 flex items-center"
+                className="h-8 bg-gray-50 dark:bg-gray-900 flex items-center border-b border-gray-200 dark:border-gray-800 relative"
                 style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
               >
                 {/* Empty title bar for system buttons space */}
+                {/* Linux 下显示自定义窗口控制按钮 */}
+                <WindowControls />
               </div>
               
               {/* Draggable area at top of content */}
