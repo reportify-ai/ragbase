@@ -26,6 +26,7 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { useTranslations } from '@/i18n/hooks';
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { usePlatform } from '@/hooks/usePlatform';
 
 interface ChatSession {
   id: number;
@@ -47,6 +48,7 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
   const pathname = usePathname();
   const router = useRouter();
   const { t, loading } = useTranslations();
+  const { isWindowsOrLinux } = usePlatform();
   
   // State for chat history
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
@@ -327,11 +329,24 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
 
   return (
     <aside className="w-64 bg-white dark:bg-gray-800 flex flex-col min-h-screen">
-      {/* Header with Settings */}
+      {/* Header with Settings - Always show Settings button */}
       <div 
-        className="pt-3 pb-1 flex items-center justify-end pr-2 pl-4 bg-white dark:bg-gray-800" 
+        className="pt-3 pb-1 flex items-center justify-between pr-2 pl-4 bg-white dark:bg-gray-800"
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       >
+        {/* Left: Avatar only for Windows/Linux, spacer for macOS */}
+        {isWindowsOrLinux ? (
+          <Avatar className="w-8 h-8">
+            <AvatarImage src="/icon.png" alt={appName} />
+            <AvatarFallback className="bg-black text-white dark:bg-white dark:text-black text-sm">
+              {avatarText}
+            </AvatarFallback>
+          </Avatar>
+        ) : (
+          <div></div>
+        )}
+        
+        {/* Right: Settings - Always show */}
         <Button
           asChild
           variant="ghost"

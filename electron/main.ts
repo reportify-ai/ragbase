@@ -149,9 +149,9 @@ function createWindow(): void {
     height: 800,
     minWidth: 800,
     minHeight: 600,
-    // 系统栏控制选项
-    titleBarStyle: process.platform === 'darwin' ? 'hidden' : 'default',
-    // macOS 上精确控制按钮位置
+    // System bar control options
+    titleBarStyle: process.platform === 'darwin' ? 'hidden' : 'hidden',
+    // macOS - precise control of button position
     ...(process.platform === 'darwin' && {
       trafficLightPosition: { x: 14, y: 20 }
     }),
@@ -159,12 +159,12 @@ function createWindow(): void {
     maximizable: true,
     closable: true,
     resizable: true,
-    // Windows 下的标题栏覆盖层（可选）
-    ...(process.platform === 'win32' && {
+    // Windows/Linux - hide title bar but keep buttons
+    ...(process.platform !== 'darwin' && {
       titleBarOverlay: {
-        color: '#ffffff',
-        symbolColor: '#000000',
-        height: 48
+        color: '#00000000',      // completely transparent background
+        symbolColor: '#666666',   // button icon color
+        height: 32               // minimum button area height
       }
     }),
     webPreferences: {
