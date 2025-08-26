@@ -5,7 +5,7 @@ import { Minus, Square, X } from 'lucide-react';
 export function WindowControls() {
   const { platform } = usePlatform();
 
-  // 只在 Windows/Linux 上显示自定义窗口控制按钮，macOS 不显示
+  // Only show custom window control buttons on Windows/Linux, not on macOS
   if (platform === 'darwin') return null;
 
   const handleMinimize = () => {

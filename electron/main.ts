@@ -72,7 +72,7 @@ ipcMain.handle('select-directories', async () => {
   return result.filePaths;
 }); 
 
-// 添加打开文件的处理函数
+// Add file opening handler function
 ipcMain.handle('open-file', async (_, filePath) => {
   try {
     console.log(`[electron/main] Opening file: ${filePath}`);
@@ -91,7 +91,7 @@ ipcMain.handle('open-file', async (_, filePath) => {
   }
 });
 
-// 窗口控制 API
+// Window control API
 ipcMain.handle('minimize-window', () => {
   if (mainWindow) {
     mainWindow.minimize();
@@ -182,9 +182,9 @@ function createWindow(): void {
     maximizable: true,
     closable: true,
     resizable: true,
-    // Windows/Linux 特定 - 使用自定义窗口控制
+    // Windows/Linux specific - use custom window controls
     ...(process.platform !== 'darwin' && {
-      frame: false  // 完全移除窗口边框和标题栏，使用自定义控制
+      frame: false  // Completely remove window border and title bar, use custom controls
     }),
     webPreferences: {
       nodeIntegration: false,

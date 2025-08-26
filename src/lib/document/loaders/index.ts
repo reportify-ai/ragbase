@@ -261,7 +261,7 @@ export class DocumentLoader {
         const result = await this.loadDocument(filePath);
         results.push(result);
       } catch (error) {
-        console.error(`加载文档失败: ${filePath}`, error);
+        console.error(`Failed to load document: ${filePath}`, error);
         results.push({
           documents: [],
           metadata: {

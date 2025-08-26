@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     if (failedFiles.length === 0) {
       return NextResponse.json({ 
         success: true, 
-        message: '没有失败的文件需要重试',
+        message: 'No failed files need to retry',
         stats: {
           totalFiles: 0,
           successfulFiles: 0,
@@ -47,20 +47,20 @@ export async function POST(req: NextRequest) {
     
     return NextResponse.json({ 
       success: true, 
-      message: `成功处理了 ${stats.successfulFiles} 个文件，失败 ${stats.failedFiles} 个文件`,
+      message: `Successfully processed ${stats.successfulFiles} files, failed ${stats.failedFiles} files`,
       stats 
     });
     
   } catch (error) {
-    console.error('处理重试文件时出错:', error);
+    console.error('Error processing retry files:', error);
     return NextResponse.json({ 
-      error: '处理重试文件失败', 
+      error: 'Process retry files failed', 
       details: error instanceof Error ? error.message : String(error) 
     }, { status: 500 });
   }
 }
 
-// 获取重试处理统计信息
+// Get retry processing statistics
 export async function GET(req: NextRequest) {
   const kbId = req.nextUrl.searchParams.get('kbId');
   
@@ -84,9 +84,9 @@ export async function GET(req: NextRequest) {
     });
     
   } catch (error) {
-    console.error('获取重试统计信息时出错:', error);
+    console.error('Error getting retry statistics:', error);
     return NextResponse.json({ 
-      error: '获取统计信息失败', 
+      error: 'Get statistics failed', 
       details: error instanceof Error ? error.message : String(error) 
     }, { status: 500 });
   }

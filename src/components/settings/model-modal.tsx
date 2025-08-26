@@ -6,10 +6,10 @@ import { z } from 'zod';
 import { useTranslations } from '@/i18n/hooks';
 
 const modelSchema = z.object({
-  name: z.string().min(1, '请输入模型名称'),
-  apiUrl: z.string().min(1, '请输入 API 地址'),
+  name: z.string().min(1, 'Please enter model name'),
+  apiUrl: z.string().min(1, 'Please enter API URL'),
   apiKey: z.string().optional(),
-  contextSize: z.coerce.number().min(1, '上下文长度需大于0'),
+  contextSize: z.coerce.number().min(1, 'Context size must be greater than 0'),
   temperature: z.coerce.number().min(0).max(2),
   topP: z.coerce.number().min(0).max(1),
   maxTokens: z.coerce.number().min(1),

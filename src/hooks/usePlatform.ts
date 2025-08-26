@@ -4,11 +4,11 @@ export function usePlatform() {
   const [platform, setPlatform] = useState<string>('');
 
   useEffect(() => {
-    // 检查是否在 Electron 环境中
+    // Check if running in Electron environment
     if (typeof window !== 'undefined' && window.electronAPI) {
       setPlatform(window.electronAPI.platform);
     } else {
-      // 在浏览器环境中通过 user agent 推测（fallback）
+      // Detect platform via user agent in browser environment (fallback)
       const userAgent = navigator.userAgent.toLowerCase();
       if (userAgent.includes('win')) {
         setPlatform('win32');

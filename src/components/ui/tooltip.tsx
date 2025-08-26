@@ -33,7 +33,7 @@ export function Tooltip({
     
     let newSide = side
     
-    // 检查空间并调整位置
+    // Check space and adjust position
     if (side === "top" && rect.top < 80) {
       newSide = "bottom"
     } else if (side === "bottom" && rect.bottom > viewportHeight - 80) {
@@ -55,7 +55,7 @@ export function Tooltip({
     setIsVisible(false)
   }
   
-  // 计算 tooltip 的位置样式
+  // Calculate tooltip position styles
   const getTooltipClasses = () => {
     const base = "absolute z-[9999] px-3 py-2 text-sm font-medium text-white bg-black rounded-md shadow-xl pointer-events-none whitespace-nowrap"
     
@@ -75,7 +75,7 @@ export function Tooltip({
   
   const renderArrow = () => {
     const arrowSize = 8
-    const arrowColor = "#000000" // 黑色
+    const arrowColor = "#000000" // Black
     
     switch (actualSide) {
       case "top":

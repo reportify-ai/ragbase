@@ -24,9 +24,9 @@ export async function GET(req: NextRequest) {
       id: dir.id,
       name: dir.dirPath.split('/').pop() || dir.dirPath,
       path: dir.dirPath,
-      syncType: dir.syncType === 'realtime' ? '实时同步' : '手动同步',
-      last: latestSyncTime ? new Date(latestSyncTime).toLocaleString('zh-CN') : '从未同步',
-      status: latestSyncTime ? '已同步' : '未同步',
+      syncType: dir.syncType === 'realtime' ? 'Real-time sync' : 'Manual sync',
+      last: latestSyncTime ? new Date(latestSyncTime).toLocaleString('en-US') : 'Never synced',
+      status: latestSyncTime ? 'Synced' : 'Not synced',
     };
   }));
   
@@ -40,8 +40,8 @@ export async function POST(req: NextRequest) {
   const existingDir = await checkSyncDirectoryExists(data.kbId, data.dirPath);
   if (existingDir) {
     return NextResponse.json({ 
-      error: '目录已存在', 
-      message: `目录 "${data.dirPath}" 在知识库中已存在，请选择其他目录或使用现有目录` 
+      error: 'Directory already exists', 
+      message: `Directory "${data.dirPath}" already exists in the knowledge base. Please choose another directory or use the existing one.` 
     }, { status: 409 });
   }
   
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     totalFiles: 0,
     syncedFiles: 0,
     failedFiles: 0,
-    message: '首次添加目录自动记录',
+    message: 'First time adding directory auto record',
   });
 
   await createScanFilesTask({
@@ -108,7 +108,7 @@ export async function PATCH(req: NextRequest) {
       await updateSyncLog(log.id, {
         endTime: new Date().toISOString(),
         status: 'success',
-        message: '同步完成',
+        message: 'Sync completed',
       });
       
       return NextResponse.json({ 
@@ -144,8 +144,8 @@ export async function PUT(req: NextRequest) {
     const existingDir = await checkSyncDirectoryExistsExcludeId(data.kbId, data.dirPath, data.id);
     if (existingDir) {
       return NextResponse.json({ 
-        error: '目录已存在', 
-        message: `目录 "${data.dirPath}" 在知识库中已存在，请选择其他目录或使用现有目录` 
+        error: 'Directory already exists', 
+        message: `Directory "${data.dirPath}" already exists in the knowledge base. Please choose another directory or use the existing one.` 
       }, { status: 409 });
     }
   }

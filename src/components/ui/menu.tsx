@@ -410,7 +410,7 @@ export function SidebarMenu({ appName = "RAGBASE", avatarText = "RB" }: SidebarM
             );
           }
           
-          // 常规链接
+          // Regular link
           return (
             <Button
               asChild

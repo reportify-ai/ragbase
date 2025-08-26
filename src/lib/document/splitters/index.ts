@@ -38,7 +38,7 @@ export class DocumentSplitter {
 
     const chunks = await splitter.splitDocuments(documents);
     
-    // 计算统计信息
+    // Calculate statistics
     const totalChunks = chunks.length;
     const averageChunkSize = totalChunks > 0 
       ? chunks.reduce((sum, chunk) => sum + chunk.pageContent.length, 0) / totalChunks 
@@ -69,7 +69,7 @@ export class DocumentSplitter {
     return await splitter.splitText(text);
   }
 
-  // 针对不同文件类型的优化分割策略
+  // Optimized splitting strategies for different file types
   static async splitByFileType(
     documents: Document[],
     fileType: string

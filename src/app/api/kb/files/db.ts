@@ -103,7 +103,7 @@ export async function getFailedFiles(syncDirectoryIds?: number[], kbId?: number,
     
     return paginatedQuery;
   } catch (error) {
-    console.error('获取失败文件列表时出错:', error);
+    console.error('Error getting failed files list:', error);
     return [];
   }
 }
@@ -125,7 +125,7 @@ export async function getFailedFilesCount(syncDirectoryIds?: number[], kbId?: nu
       
     return Number(result[0]?.count || 0);
   } catch (error) {
-    console.error('获取失败文件数量时出错:', error);
+    console.error('Error getting failed files count:', error);
     return 0;
   }
 }

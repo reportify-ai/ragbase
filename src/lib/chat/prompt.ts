@@ -14,7 +14,7 @@ The answer should be concise, accurate, and helpful.`],
     ["human", `Context information:
 {context}
 
-用户问题：{question}`],
+User question: {question}`],
   ]);
 }
 

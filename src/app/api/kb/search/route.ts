@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getLanceDBManager } from '../../../../llm';
 
-// 明确指定使用 Node.js 运行时
+// Explicitly specify using Node.js runtime
 export const runtime = 'nodejs';
 
 /**
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     const rjson = results.map(([doc, score]) => ({
         content: doc.pageContent,
         metadata: doc.metadata,
-        score: score // 包含相似度分数（距离值，越小表示越相似）
+        score: score // Contains similarity score (distance value, smaller means more similar)
       }))
     console.log(rjson);
     return NextResponse.json({

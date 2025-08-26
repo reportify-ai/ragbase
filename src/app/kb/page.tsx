@@ -58,7 +58,7 @@ function TopCards({ kbs, onEdit, onDelete }: { kbs: KbItem[]; onEdit: (kb: KbIte
 }
 
 const kbSchema = z.object({
-  name: z.string().min(1, '请输入知识库名称'),
+  name: z.string().min(1, 'Please enter knowledge base name'),
   description: z.string().optional(),
 });
 
@@ -184,7 +184,7 @@ export default function KbPage() {
     const totalPages = Math.ceil(allFilesTotal / pageSize);
     if (!isNaN(page) && page >= 1 && page <= totalPages) {
       setFilePage(page);
-      setJumpPage(''); // 清空输入框
+      setJumpPage(''); // Clear input box
     }
   }
 
@@ -214,7 +214,7 @@ export default function KbPage() {
       // Re-fetch file list
       await fetchAllFiles();
     } catch (error: any) {
-      console.error('删除文件失败:', error);
+      console.error('Delete file failed:', error);
       alert(`${t('api.errors.deleteFailed')}: ${error.message || t('api.errors.unknownError')}`);
     } finally {
       setDeletingFile(null);
