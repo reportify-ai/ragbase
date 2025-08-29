@@ -3,7 +3,7 @@ interface Window {
     selectDirectories: () => Promise<string[]>;
     openFile: (filePath: string) => Promise<{ success: boolean; error?: string }>;
     platform: string;
-    // 窗口控制 API
+    // Window control APIs
     minimizeWindow: () => Promise<void>;
     maximizeWindow: () => Promise<void>;
     closeWindow: () => Promise<void>;
