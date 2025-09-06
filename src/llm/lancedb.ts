@@ -272,20 +272,26 @@ export class LanceDBManager {
       for (const fileId of fileIds) {
         try {
           const queryResults = await table.query().where(`\`fileId\` = ${fileId}`).limit(1000).toArray();
+          console.log(`[LanceDBManager] FileId ${fileId}: Found ${queryResults.length} documents to delete`);
+          if (queryResults.length > 0) {
+            console.log(`[LanceDBManager] FileId ${fileId}: document metadata:`, JSON.stringify(queryResults[0].metadata, null, 2));
+          }
           expectedDeletions += queryResults.length;
         } catch (queryError) {
           console.log(`[LanceDBManager] Could not query documents for fileId ${fileId}:`, queryError instanceof Error ? queryError.message : String(queryError));
         }
       }
-      console.log(`[LanceDBManager] Found ${expectedDeletions} documents to delete for ${fileIds.length} files`);
+      console.log(`[LanceDBManager] Total expected deletions: ${expectedDeletions} documents for ${fileIds.length} files`);
 
       // Perform individual deletions for each fileId
       console.log(`[LanceDBManager] Executing individual deletions for ${fileIds.length} fileIds`);
       for (const fileId of fileIds) {
         try {
+          console.log(`[LanceDBManager] Attempting to delete documents for fileId ${fileId} using query: \`fileId\` = ${fileId}`);
           await table.delete(`\`fileId\` = ${fileId}`);
+          console.log(`[LanceDBManager] ✅ Delete command executed for fileId ${fileId}`);
         } catch (deleteError) {
-          console.log(`[LanceDBManager] Failed to delete documents for fileId ${fileId}:`, deleteError instanceof Error ? deleteError.message : String(deleteError));
+          console.error(`[LanceDBManager] ❌ Failed to delete documents for fileId ${fileId}:`, deleteError instanceof Error ? deleteError.message : String(deleteError));
         }
       }
 

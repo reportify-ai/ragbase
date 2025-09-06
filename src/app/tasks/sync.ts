@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import { createReadStream } from 'fs';
 import path from 'path';
 import { createFile, fileExists, fileNeedsSync, getFileRecord, updateFile } from '../api/kb/files/db';
+import { DocumentDB } from '../../lib/document/db';
 import chokidar from 'chokidar';
 import { files, syncDirectories, documentChunks } from '../../db/schema';
 import { db } from '../../db';
@@ -334,9 +335,17 @@ export function createRealtimeScanTask(scanPath: string, syncDirectoryId: number
         
         // First create sync log record
         const startTime = new Date().toISOString();
+        
+        // Get sync directory info for directory path and name
+        const syncDir = await getSyncDirectoryById(syncDirectoryId);
+        const dirPath = syncDir?.dirPath || '';
+        const dirName = dirPath.split('/').pop() || dirPath;
+        
         const syncLog = await createSyncLog({
           syncDirectoryId,
           kbId,
+          dirPath,
+          dirName,
           startTime,
           status: 'running',
           totalFiles: 0,
@@ -344,21 +353,20 @@ export function createRealtimeScanTask(scanPath: string, syncDirectoryId: number
           failedFiles: 0,
         });
         
-        // Delete file record and related data
+        // Delete file record and related data (including vector data)
         console.log(`[RealtimeScanTask] Removing file record for: ${filePath} (id: ${existingFile.id})`);
         
-        // Delete document chunks first (foreign key constraint)
-        await db.delete(documentChunks).where(eq(documentChunks.file_id, existingFile.id));
+        // Use DocumentDB to delete file, chunks, and vector data atomically
+        const deleteResult = await DocumentDB.deleteFilesByIds([existingFile.id]);
         
-        // Delete the file record
-        await db.delete(files).where(eq(files.id, existingFile.id));
+        console.log(`[RealtimeScanTask] Delete result - Files: ${deleteResult.deletedFiles}, Chunks: ${deleteResult.deletedChunks}, Vectors: ${deleteResult.deletedVectors}`);
         
         await updateSyncLog(syncLog.id, {
           syncedFiles: (syncLog.syncedFiles || 0) + 1,
           totalFiles: (syncLog.totalFiles || 0) + 1,
           endTime: new Date().toISOString(),
           status: 'success',
-          message: 'File deletion synced',
+          message: `File deletion synced - Deleted ${deleteResult.deletedFiles} files, ${deleteResult.deletedChunks} chunks, ${deleteResult.deletedVectors} vectors`,
         });
         
         console.log(`[RealtimeScanTask] Successfully cleaned up deleted file: ${filePath}`);
@@ -401,10 +409,15 @@ export async function updateExistingFilesWithMtime() {
         failed++;
         console.warn(`[UpdateFilesMtime] Failed to update ${file.path}: ${err instanceof Error ? err.message : 'Unknown error'}`);
         
-        // If file doesn't exist on filesystem, we could mark it for cleanup
-        // For now, just log the issue
+        // If file doesn't exist on filesystem, clean up database and vector data
         if ((err as any).code === 'ENOENT') {
-          console.log(`[UpdateFilesMtime] File not found on filesystem: ${file.path}`);
+          console.log(`[UpdateFilesMtime] File not found on filesystem, cleaning up: ${file.path}`);
+          try {
+            const deleteResult = await DocumentDB.deleteFilesByIds([file.id]);
+            console.log(`[UpdateFilesMtime] Cleaned up orphaned file - Files: ${deleteResult.deletedFiles}, Chunks: ${deleteResult.deletedChunks}, Vectors: ${deleteResult.deletedVectors}`);
+          } catch (cleanupErr) {
+            console.error(`[UpdateFilesMtime] Failed to cleanup orphaned file ${file.path}:`, cleanupErr);
+          }
         }
       }
     }
