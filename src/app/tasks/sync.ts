@@ -44,6 +44,37 @@ function isHiddenOrTempFile(filePath: string): boolean {
   // Check if it is a hidden file (starts with .)
   if (fileName.startsWith('.')) return true;
   
+  // Check Microsoft Office temporary files (开始时创建的临时文件)
+  // Word: ~$filename.docx, ~$filename.doc
+  // Excel: ~$filename.xlsx, ~$filename.xls  
+  // PowerPoint: ~$filename.pptx, ~$filename.ppt
+  if (fileName.startsWith('~$')) {
+    const officeExtensions = ['.docx', '.doc', '.xlsx', '.xls', '.pptx', '.ppt'];
+    const ext = path.extname(fileName).toLowerCase();
+    if (officeExtensions.includes(ext)) {
+      console.log(`[Sync] Skipping Office temp file: ${fileName}`);
+      return true;
+    }
+  }
+  
+  // Check Excel auto-recovery files (以 .xar 结尾的自动恢复文件)
+  if (fileName.toLowerCase().endsWith('.xar')) {
+    console.log(`[Sync] Skipping Excel auto-recovery file: ${fileName}`);
+    return true;
+  }
+  
+  // Check Word auto-recovery files (AutoRecovery save of xxx)
+  if (fileName.startsWith('AutoRecovery save of ') || fileName.includes('~WRL')) {
+    console.log(`[Sync] Skipping Word auto-recovery file: ${fileName}`);
+    return true;
+  }
+  
+  // Check PowerPoint auto-recovery files
+  if (fileName.includes('~PP') && fileName.includes('.tmp')) {
+    console.log(`[Sync] Skipping PowerPoint temp file: ${fileName}`);
+    return true;
+  }
+  
   // Check if it is a common temporary file
   const tempExtensions = [
     '.tmp', '.temp', '.swp', '.swo', '.swx', '.swpx',  // Editor temporary files
@@ -60,6 +91,12 @@ function isHiddenOrTempFile(filePath: string): boolean {
   // Check specific full file names
   const specificFiles = ['.DS_Store', 'Thumbs.db', 'desktop.ini'];
   if (specificFiles.includes(fileName)) return true;
+  
+  // Additional Office lock files (sometimes created)
+  if (fileName.includes('~lock.') || fileName.includes('.laccdb')) {
+    console.log(`[Sync] Skipping Office lock file: ${fileName}`);
+    return true;
+  }
   
   return false;
 }
