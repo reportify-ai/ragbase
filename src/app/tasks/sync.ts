@@ -6,7 +6,7 @@ import chokidar from 'chokidar';
 import { files, syncDirectories, documentChunks } from '../../db/schema';
 import { db } from '../../db';
 import { eq, isNull, and } from 'drizzle-orm';
-import { getAllSyncDirectories } from '../api/kb/sync-directories/db';
+import { getAllSyncDirectories, getSyncDirectoryById } from '../api/kb/sync-directories/db';
 import crypto from 'crypto';
 import { createSyncLog, getSyncLogsByDirectoryId, updateSyncLog } from '../api/kb/sync-logs/db';
 
@@ -190,9 +190,17 @@ export function createRealtimeScanTask(scanPath: string, syncDirectoryId: number
         
         // First create sync log record
         const startTime = new Date().toISOString();
+        
+        // Get sync directory info for directory path and name
+        const syncDir = await getSyncDirectoryById(syncDirectoryId);
+        const dirPath = syncDir?.dirPath || scanPath;
+        const dirName = dirPath.split('/').pop() || dirPath;
+        
         const syncLog = await createSyncLog({
           syncDirectoryId,
           kbId,
+          dirPath,
+          dirName,
           startTime,
           status: 'running',
           totalFiles: 0,

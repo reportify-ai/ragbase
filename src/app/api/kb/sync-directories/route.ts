@@ -11,10 +11,16 @@ import {
 } from './db';
 import { createScanFilesTask, createRealtimeScanTask } from '../../../tasks/sync';
 import { createSyncLog, updateSyncLog } from '../sync-logs/db';
+import { createServerTranslator } from '@/lib/server-i18n';
 
 export async function GET(req: NextRequest) {
+  const t = await createServerTranslator(req);
+  
   const kbId = Number(req.nextUrl.searchParams.get('kbId'));
-  if (!kbId) return NextResponse.json({ error: 'kbId required' }, { status: 400 });
+  if (!kbId) {
+    return NextResponse.json({ error: t.t('api.errors.kbIdRequired') }, { status: 400 });
+  }
+  
   const dirs = await getSyncDirectoriesByKbId(kbId);
   
   // For each directory, get the latest sync time
@@ -34,14 +40,15 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const t = await createServerTranslator(req);
   const data = await req.json();
   
   // Check if directory already exists
   const existingDir = await checkSyncDirectoryExists(data.kbId, data.dirPath);
   if (existingDir) {
     return NextResponse.json({ 
-      error: 'Directory already exists', 
-      message: `Directory "${data.dirPath}" already exists in the knowledge base. Please choose another directory or use the existing one.` 
+      error: t.t('api.errors.directoryAlreadyExists'), 
+      message: t.t('api.errors.directoryExistsMessage', { dirPath: data.dirPath })
     }, { status: 409 });
   }
   
@@ -52,13 +59,15 @@ export async function POST(req: NextRequest) {
   await createSyncLog({
     syncDirectoryId: dir.id,
     kbId: dir.kbId,
+    dirPath: dir.dirPath,
+    dirName: dir.dirPath.split('/').pop() || dir.dirPath,
     startTime: now,
     endTime: now,
     status: 'success',
     totalFiles: 0,
     syncedFiles: 0,
     failedFiles: 0,
-    message: 'First time adding directory auto record',
+    message: t.t('api.messages.firstTimeAddingDirectory'),
   });
 
   await createScanFilesTask({
@@ -74,16 +83,18 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const t = await createServerTranslator(req);
+  
   try {
     const { syncDirectoryId } = await req.json();
     
     if (!syncDirectoryId) {
-      return NextResponse.json({ error: 'syncDirectoryId is required' }, { status: 400 });
+      return NextResponse.json({ error: t.t('api.errors.syncDirectoryIdRequired') }, { status: 400 });
     }
     
     const dir = await getSyncDirectoryById(syncDirectoryId);
     if (!dir) {
-      return NextResponse.json({ error: 'Sync directory not found' }, { status: 404 });
+      return NextResponse.json({ error: t.t('api.errors.syncDirectoryNotFound') }, { status: 404 });
     }
     
     // Create sync log record
@@ -91,6 +102,8 @@ export async function PATCH(req: NextRequest) {
     const log = await createSyncLog({
       syncDirectoryId: dir.id,
       kbId: dir.kbId,
+      dirPath: dir.dirPath,
+      dirName: dir.dirPath.split('/').pop() || dir.dirPath,
       startTime,
       status: 'running',
       totalFiles: 0,
@@ -108,12 +121,12 @@ export async function PATCH(req: NextRequest) {
       await updateSyncLog(log.id, {
         endTime: new Date().toISOString(),
         status: 'success',
-        message: 'Sync completed',
+        message: t.t('api.messages.syncCompleted'),
       });
       
       return NextResponse.json({ 
         success: true, 
-        message: `Manual sync triggered for directory ${dir.dirPath}`,
+        message: t.t('api.messages.manualSyncTriggered', { dirPath: dir.dirPath }),
         logId: log.id,
       });
     } catch (error) {
@@ -129,23 +142,27 @@ export async function PATCH(req: NextRequest) {
   } catch (error) {
     console.error('Manual sync folder failed:', error);
     return NextResponse.json({ 
-      error: 'Manual sync failed', 
+      error: t.t('api.errors.manualSyncFailed'), 
       details: (error as Error).message 
     }, { status: 500 });
   }
 }
 
 export async function PUT(req: NextRequest) {
+  const t = await createServerTranslator(req);
   const data = await req.json();
-  if (!data.id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+  
+  if (!data.id) {
+    return NextResponse.json({ error: t.t('api.errors.idRequired') }, { status: 400 });
+  }
   
   // If updating directory path, check for conflicts with other records
   if (data.dirPath) {
     const existingDir = await checkSyncDirectoryExistsExcludeId(data.kbId, data.dirPath, data.id);
     if (existingDir) {
       return NextResponse.json({ 
-        error: 'Directory already exists', 
-        message: `Directory "${data.dirPath}" already exists in the knowledge base. Please choose another directory or use the existing one.` 
+        error: t.t('api.errors.directoryAlreadyExists'), 
+        message: t.t('api.errors.directoryExistsMessage', { dirPath: data.dirPath })
       }, { status: 409 });
     }
   }
@@ -155,11 +172,13 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const t = await createServerTranslator(req);
+  
   try {
     const { id, cleanData } = await req.json();
     
     if (!id) {
-      return NextResponse.json({ error: 'id required' }, { status: 400 });
+      return NextResponse.json({ error: t.t('api.errors.idRequired') }, { status: 400 });
     }
 
     let deletionResult = null;
@@ -169,7 +188,7 @@ export async function DELETE(req: NextRequest) {
       // Get sync directory info to get knowledge base ID
       const syncDirInfo = await getSyncDirectoryById(id);
       if (!syncDirInfo) {
-        return NextResponse.json({ error: 'Sync directory not found' }, { status: 404 });
+        return NextResponse.json({ error: t.t('api.errors.syncDirectoryNotFound') }, { status: 404 });
       }
 
       console.log(`[DeleteSyncDirectory] Cleaning data for sync directory ${id} in KB ${syncDirInfo.kbId}`);
@@ -190,7 +209,7 @@ export async function DELETE(req: NextRequest) {
 
     const response: any = { 
       success: true, 
-      message: 'Sync directory deleted successfully' 
+      message: t.t('api.messages.syncDirectoryDeletedSuccessfully') 
     };
 
     // Include deletion statistics if data was cleaned
@@ -203,8 +222,8 @@ export async function DELETE(req: NextRequest) {
     console.error('Failed to delete sync directory:', error);
     return NextResponse.json(
       { 
-        error: 'Failed to delete sync directory', 
-        details: error instanceof Error ? error.message : 'Unknown error' 
+        error: t.t('api.errors.deleteSyncDirectoryFailed'), 
+        details: error instanceof Error ? error.message : t.t('api.errors.unknownError') 
       },
       { status: 500 }
     );

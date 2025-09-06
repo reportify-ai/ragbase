@@ -67,6 +67,8 @@ export const syncDirectoryLogs = sqliteTable('sync_directory_logs', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   syncDirectoryId: integer('sync_directory_id').notNull(),
   kbId: integer('kb_id'),
+  dirPath: text('dir_path'), // Store directory path for display even after sync directory is deleted
+  dirName: text('dir_name'), // Store directory name for display even after sync directory is deleted
   startTime: text('start_time').notNull(),
   endTime: text('end_time'),
   status: text('status').notNull(), // running, success, failed, canceled

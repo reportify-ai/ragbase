@@ -327,7 +327,21 @@
       "loadKbFailed": "加载知识库失败",
       "loadSyncLogsFailed": "加载同步历史失败",
       "loadFailed": "加载失败",
-      "syncFailed": "同步失败"
+      "syncFailed": "同步失败",
+      "kbIdRequired": "知识库ID为必填项",
+      "directoryAlreadyExists": "目录已存在",
+      "directoryExistsMessage": "目录 \"{dirPath}\" 已存在于该知识库中。请选择其他目录或使用现有目录。",
+      "syncDirectoryIdRequired": "同步目录ID为必填项",
+      "syncDirectoryNotFound": "同步目录未找到",
+      "manualSyncFailed": "手动同步失败",
+      "idRequired": "ID为必填项",
+      "deleteSyncDirectoryFailed": "删除同步目录失败"
+    },
+    "messages": {
+      "firstTimeAddingDirectory": "首次添加目录自动记录",
+      "syncCompleted": "同步完成",
+      "manualSyncTriggered": "已为目录 {dirPath} 触发手动同步",
+      "syncDirectoryDeletedSuccessfully": "同步目录删除成功"
     },
     "success": {
       "modelCreated": "模型创建成功",

@@ -329,7 +329,21 @@
       "loadKbFailed": "Load knowledge base failed",
       "loadSyncLogsFailed": "Load sync logs failed",
       "loadFailed": "Load failed",
-      "syncFailed": "Sync failed"
+      "syncFailed": "Sync failed",
+      "kbIdRequired": "Knowledge base ID is required",
+      "directoryAlreadyExists": "Directory already exists",
+      "directoryExistsMessage": "Directory \"{dirPath}\" already exists in the knowledge base. Please choose another directory or use the existing one.",
+      "syncDirectoryIdRequired": "Sync directory ID is required",
+      "syncDirectoryNotFound": "Sync directory not found",
+      "manualSyncFailed": "Manual sync failed",
+      "idRequired": "ID is required",
+      "deleteSyncDirectoryFailed": "Failed to delete sync directory"
+    },
+    "messages": {
+      "firstTimeAddingDirectory": "First time adding directory auto record",
+      "syncCompleted": "Sync completed",
+      "manualSyncTriggered": "Manual sync triggered for directory {dirPath}",
+      "syncDirectoryDeletedSuccessfully": "Sync directory deleted successfully"
     },
     "success": {
       "modelCreated": "Model created successfully",

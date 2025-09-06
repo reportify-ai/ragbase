@@ -826,7 +826,7 @@ export default function KbDetailPage() {
                               {formatLocalDateTime(log.startTime)}
                             </td>
                             <td className="px-4 py-2">
-                              {syncDirs.find(dir => dir.id === log.syncDirectoryId)?.name || t('pages.kbSync.unknownDirectory')}
+                              {log.dirName || syncDirs.find(dir => dir.id === log.syncDirectoryId)?.name || t('pages.kbSync.unknownDirectory')}
                             </td>
                             <td className="px-4 py-2">
                               <span className={`px-2 py-0.5 rounded text-xs font-medium ${
