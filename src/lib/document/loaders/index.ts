@@ -2,6 +2,7 @@ import { Document } from '@langchain/core/documents';
 import path from 'path';
 import fs from 'fs/promises';
 import pdfParse from 'pdf-parse/lib/pdf-parse.js';
+import TurndownService from 'turndown';
 
 export interface DocumentLoadResult {
   documents: Document[];
@@ -255,6 +256,57 @@ export class DocumentLoader {
     }
   }
 
+  // Extract and convert HTML content to Markdown using turndown
+  static async extractHtmlContent(filePath: string): Promise<{ content: string; title?: string; }> {
+    try {
+      const htmlContent = await fs.readFile(filePath, 'utf-8');
+      
+      // Configure turndown service
+      const turndownService = new TurndownService({
+        headingStyle: 'atx',           // Use # style headings
+        codeBlockStyle: 'fenced',      // Use ``` for code blocks
+        bulletListMarker: '-',         // Use - for bullet lists
+        strongDelimiter: '**',         // Use ** for bold
+        emDelimiter: '*',              // Use * for italic
+        linkStyle: 'inlined',          // Use [text](url) style links
+        linkReferenceStyle: 'full',    // Full reference style
+      });
+
+      // Add custom rules for better conversion
+      turndownService.addRule('strikethrough', {
+        filter: ['del', 's'] as any, // TypeScript workaround for legacy HTML tags
+        replacement: function (content: string) {
+          return '~~' + content + '~~';
+        }
+      });
+
+      turndownService.addRule('underline', {
+        filter: ['u'],
+        replacement: function (content: string) {
+          return '<u>' + content + '</u>'; // Keep underline as HTML since MD doesn't support it
+        }
+      });
+
+      // Remove script and style content
+      turndownService.remove(['script', 'style', 'noscript']);
+
+      // Convert HTML to Markdown
+      const markdownContent = turndownService.turndown(htmlContent);
+      
+      // Extract title from HTML
+      const titleMatch = htmlContent.match(/<title[^>]*>(.*?)<\/title>/i);
+      const title = titleMatch ? titleMatch[1].trim() : undefined;
+      
+      return {
+        content: markdownContent,
+        title
+      };
+    } catch (error) {
+      console.error('Error extracting HTML content:', error);
+      throw new Error(`Failed to extract HTML content: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
   // Extract content from PowerPoint documents (.pptx, .ppt)
   static async extractPowerPointContent(filePath: string): Promise<{ slides: Array<{ slideNumber: number; content: string; }>; totalSlides: number; }> {
     try {
@@ -418,7 +470,7 @@ export class DocumentLoader {
       let documents: Document[] = [];
 
       // Process different types of files
-      if (['.txt', '.md', '.js', '.ts', '.py', '.java', '.cpp', '.c', '.html', '.xml', '.yaml', '.yml', '.json', '.csv'].includes(ext)) {
+      if (['.txt', '.md', '.js', '.ts', '.py', '.java', '.cpp', '.c', '.xml', '.yaml', '.yml', '.json', '.csv'].includes(ext)) {
         // Text file
         const content = await fs.readFile(filePath, 'utf-8');
         documents = [
@@ -433,6 +485,26 @@ export class DocumentLoader {
               totalPages: 1,
               chunkIndex: 0,
               totalChunks: 1,
+            },
+          })
+        ];
+      } else if (ext === '.html') {
+        // HTML file - convert to Markdown using turndown
+        const { content, title } = await this.extractHtmlContent(filePath);
+        documents = [
+          new Document({
+            pageContent: content,
+            metadata: {
+              filePath,
+              fileName,
+              fileSize,
+              mimeType,
+              title,
+              pageNumber: 1,
+              totalPages: 1,
+              chunkIndex: 0,
+              totalChunks: 1,
+              convertedFromHtml: true, 
             },
           })
         ];
