@@ -200,7 +200,7 @@ export class DocumentLoader {
   }
 
   // Extract content from Excel documents (.xlsx, .xls) as Markdown
-  static async extractExcelContent(filePath: string): Promise<{ sheets: Array<{ name: string; content: string; rows: number; cols: number; }>; totalSheets: number; }> {
+  static async extractExcelContent(filePath: string): Promise<{ sheets: Array<{ name: string; content: string; rows: number; cols: number; tableHeader?: string; headerRow?: string[]; }>; totalSheets: number; }> {
     try {
       const XLSX = require('xlsx');
       const workbook = XLSX.readFile(filePath);
@@ -220,29 +220,56 @@ export class DocumentLoader {
           const rows = jsonData.slice(1) as any[][];
           
           if (headers && headers.length > 0) {
-            // Table headers
-            markdownContent += '| ' + headers.map(h => String(h || '')).join(' | ') + ' |\n';
-            markdownContent += '| ' + headers.map(() => '---').join(' | ') + ' |\n';
+            // Escape markdown special characters in headers
+            const escapeMarkdown = (text: string): string => {
+              return text
+                .replace(/\|/g, '\\|')
+                .replace(/\n/g, ' ')
+                .replace(/\r/g, '')
+                .trim();
+            };
+
+            // Convert headers to strings and escape them
+            const cleanHeaders = headers.map(h => escapeMarkdown(String(h || '')));
+            
+            // Build table header (分离出来便于后续chunk使用)
+            const tableHeaderMarkdown = '| ' + cleanHeaders.join(' | ') + ' |\n' +
+                                       '| ' + cleanHeaders.map(() => '---').join(' | ') + ' |\n';
+            
+            markdownContent += tableHeaderMarkdown;
             
             // Table rows
             rows.forEach(row => {
               if (row && row.length > 0) {
-                const paddedRow = headers.map((_, i) => String(row[i] || ''));
+                const paddedRow = cleanHeaders.map((_, i) => escapeMarkdown(String(row[i] || '')));
                 markdownContent += '| ' + paddedRow.join(' | ') + ' |\n';
               }
             });
+
+            const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:A1');
+            
+            return {
+              name: sheetName,
+              content: markdownContent,
+              rows: range.e.r + 1,
+              cols: range.e.c + 1,
+              tableHeader: tableHeaderMarkdown,  // 分离的表头
+              headerRow: cleanHeaders            // 原始表头数组
+            };
           }
-        } else {
-          markdownContent += '*Empty sheet*\n';
         }
         
+        // Empty sheet or no headers
+        markdownContent += '*Empty sheet*\n';
         const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:A1');
         
         return {
           name: sheetName,
           content: markdownContent,
           rows: range.e.r + 1,
-          cols: range.e.c + 1
+          cols: range.e.c + 1,
+          tableHeader: undefined,
+          headerRow: undefined
         };
       });
       
@@ -253,6 +280,139 @@ export class DocumentLoader {
     } catch (error) {
       console.error('Error extracting Excel content:', error);
       throw new Error(`Failed to extract Excel content: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  // Extract and convert CSV content to Markdown table
+  static async extractCsvContent(filePath: string): Promise<{ content: string; rowCount: number; columnCount: number; tableHeader?: string; headerRow?: string[]; }> {
+    try {
+      const csvContent = await fs.readFile(filePath, 'utf-8');
+      
+      // Parse CSV content - simple parser that handles basic CSV format
+      const lines = csvContent.split('\n').filter(line => line.trim().length > 0);
+      
+      if (lines.length === 0) {
+        return {
+          content: '*Empty CSV file*',
+          rowCount: 0,
+          columnCount: 0,
+          tableHeader: undefined,
+          headerRow: undefined
+        };
+      }
+      
+      // Parse CSV lines - handle quoted fields and commas
+      const parseCSVLine = (line: string): string[] => {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          
+          if (char === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+              // Handle escaped quotes
+              current += '"';
+              i++; // Skip next quote
+            } else {
+              // Toggle quote state
+              inQuotes = !inQuotes;
+            }
+          } else if (char === ',' && !inQuotes) {
+            // Field separator
+            result.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        
+        // Add last field
+        result.push(current.trim());
+        
+        return result.map(field => {
+          // Remove surrounding quotes if present
+          if (field.startsWith('"') && field.endsWith('"')) {
+            return field.slice(1, -1);
+          }
+          return field;
+        });
+      };
+      
+      // Parse all lines
+      const rows = lines.map(line => parseCSVLine(line));
+      
+      // Get column count from first row
+      const columnCount = rows.length > 0 ? rows[0].length : 0;
+      
+      // Ensure all rows have the same number of columns
+      const normalizedRows = rows.map(row => {
+        const normalizedRow = [...row];
+        // Pad with empty strings if needed
+        while (normalizedRow.length < columnCount) {
+          normalizedRow.push('');
+        }
+        // Truncate if too long
+        return normalizedRow.slice(0, columnCount);
+      });
+      
+      // Build Markdown table
+      let markdownContent = `# CSV Data\n\n`;
+      
+      if (normalizedRows.length > 0) {
+        // Add file info
+        markdownContent += `*File: ${path.basename(filePath)}*\n`;
+        markdownContent += `*Rows: ${normalizedRows.length}, Columns: ${columnCount}*\n\n`;
+        
+        // Create table headers (use first row as headers)
+        const headers = normalizedRows[0];
+        const dataRows = normalizedRows.slice(1);
+        
+        // Escape markdown special characters in cell content
+        const escapeMarkdown = (text: string): string => {
+          return text
+            .replace(/\|/g, '\\|')
+            .replace(/\n/g, ' ')
+            .replace(/\r/g, '')
+            .trim();
+        };
+        
+        // Build table header (分离出来便于后续chunk使用)
+        const tableHeaderMarkdown = '| ' + headers.map(escapeMarkdown).join(' | ') + ' |\n' +
+                                   '| ' + headers.map(() => '---').join(' | ') + ' |\n';
+        
+        markdownContent += tableHeaderMarkdown;
+        
+        // Build table rows
+        dataRows.forEach(row => {
+          markdownContent += '| ' + row.map(escapeMarkdown).join(' | ') + ' |\n';
+        });
+        
+        // Add summary
+        markdownContent += `\n*Total data rows: ${dataRows.length}*\n`;
+        
+        return {
+          content: markdownContent,
+          rowCount: normalizedRows.length,
+          columnCount: columnCount,
+          tableHeader: tableHeaderMarkdown,  // 分离的表头
+          headerRow: headers  // 原始表头数组
+        };
+      } else {
+        markdownContent += '*No data found in CSV file*\n';
+        
+        return {
+          content: markdownContent,
+          rowCount: normalizedRows.length,
+          columnCount: columnCount,
+          tableHeader: undefined,
+          headerRow: undefined
+        };
+      }
+    } catch (error) {
+      console.error('Error extracting CSV content:', error);
+      throw new Error(`Failed to extract CSV content: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -470,7 +630,7 @@ export class DocumentLoader {
       let documents: Document[] = [];
 
       // Process different types of files
-      if (['.txt', '.md', '.js', '.ts', '.py', '.java', '.cpp', '.c', '.xml', '.yaml', '.yml', '.json', '.csv'].includes(ext)) {
+      if (['.txt', '.md', '.js', '.ts', '.py', '.java', '.cpp', '.c', '.xml', '.yaml', '.yml', '.json'].includes(ext)) {
         // Text file
         const content = await fs.readFile(filePath, 'utf-8');
         documents = [
@@ -485,6 +645,29 @@ export class DocumentLoader {
               totalPages: 1,
               chunkIndex: 0,
               totalChunks: 1,
+            },
+          })
+        ];
+      } else if (ext === '.csv') {
+        // CSV file - convert to Markdown table
+        const { content, rowCount, columnCount, tableHeader, headerRow } = await this.extractCsvContent(filePath);
+        documents = [
+          new Document({
+            pageContent: content,
+            metadata: {
+              filePath,
+              fileName,
+              fileSize,
+              mimeType,
+              rowCount,
+              columnCount,
+              pageNumber: 1,
+              totalPages: 1,
+              chunkIndex: 0,
+              totalChunks: 1,
+              convertedFromCsv: true,
+              csvTableHeader: tableHeader,  // Markdown格式的表头
+              csvHeaderRow: headerRow,      // 原始表头数组
             },
           })
         ];
@@ -566,6 +749,9 @@ export class DocumentLoader {
               cols: sheet.cols,
               chunkIndex: index,
               totalChunks: sheets.length,
+              convertedFromExcel: true,        // 标识这是从Excel转换的
+              excelTableHeader: sheet.tableHeader,  // Markdown格式的表头
+              excelHeaderRow: sheet.headerRow,      // 原始表头数组
             },
           })
         );

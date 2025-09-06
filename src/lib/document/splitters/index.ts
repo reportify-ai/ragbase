@@ -137,11 +137,11 @@ export class DocumentSplitter {
         break;
       
       case '.csv':
-        // CSV file split by line
+        // CSV file - preserve table structure, split by larger chunks to maintain table integrity
         options = {
-          chunkSize: 500,
-          chunkOverlap: 50,
-          separators: ['\n', ',', ' '],
+          chunkSize: 4000,
+          chunkOverlap: 400,
+          separators: ['\n\n*Total data rows:', '\n\n*File:', '\n\n', '\n# ', '\n'], 
         };
         break;
       
