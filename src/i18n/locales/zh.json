@@ -119,7 +119,7 @@
       "totalFiles": "共 {count} 条",
       "confirmDeleteKb": "确定要删除知识库「{name}」吗？",
       "confirmDeleteFile": "确定要删除此文件吗？这将同时删除文件记录、文本块和向量数据，无法恢复。",
-      "syncDirectories": "同步目录",
+      "syncDirectories": "同步全部目录",
       "syncLogs": "同步日志",
       "fileStatus": {
         "pending": "待处理",
