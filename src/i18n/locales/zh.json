@@ -215,6 +215,8 @@
       "language": "语言",
       "chinese": "中文",
       "english": "English",
+      "addModel": "添加模型",
+      "noModels": "暂无模型，请添加。",
       "vectorEmbeddingModelSettings": "向量嵌入模型设置",
       "addEmbeddingModel": "添加嵌入模型",
       "noEmbeddingModels": "暂无嵌入模型，请添加。",

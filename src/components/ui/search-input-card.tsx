@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip } from "@/components/ui/tooltip";
+import { useTranslations } from '@/i18n/hooks';
 
 interface KnowledgeBase {
   id: number;
@@ -114,6 +115,8 @@ export function SearchInputCard({
   className = "",
   leftActions
 }: SearchInputCardProps) {
+  const { t } = useTranslations();
+  
   // If inputRef is not provided, create an internal ref
   const internalInputRef = useRef<HTMLTextAreaElement>(null);
   const actualInputRef = inputRef || internalInputRef;
@@ -138,7 +141,7 @@ export function SearchInputCard({
   // Display selected knowledge base text
   const selectedKbText = selectedKbs.length === 1 
     ? selectedKbs[0] 
-    : `Selected ${selectedKbs.length} knowledge bases`;
+    : t('pages.chat.selectedKnowledgeBases', { count: selectedKbs.length });
   
   // Handle knowledge base toggle - Use useCallback to avoid function recreation
   const handleKbToggle = useCallback((kbName: string) => {
@@ -157,7 +160,7 @@ export function SearchInputCard({
     
     return (
       <DropdownMenu open={isKbDropdownOpen} onOpenChange={setIsKbDropdownOpen}>
-        <Tooltip content="Knowledge Base" side="top">
+        <Tooltip content={t('pages.kb.knowledgeBase')} side="top">
           <DropdownMenuTrigger asChild>
             <Button 
               variant="ghost" 
