@@ -15,6 +15,7 @@ import { FileOpener } from "@/components/ui/file-opener";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { SyncDirDeleteDialog } from "@/components/ui/sync-dir-delete-dialog";
 import { useTranslations } from '@/i18n/hooks';
+import { formatLocalDateTime } from "@/lib/utils";
 
 interface KbItem {
   id: number;
@@ -618,7 +619,7 @@ export default function KbDetailPage() {
                             {/* Upload time */}
                             <div className="flex items-center gap-1">
                               <span>{t('pages.kb.uploadTime')}:</span>
-                              <span>{f.created_at ? (f.created_at.split('T')[0] + ' ' + (f.created_at.split('T')[1]?.slice(0,5) || '')) : ''}</span>
+                              <span>{formatLocalDateTime(f.created_at)}</span>
                             </div>
                             
                             {/* Status */}
@@ -746,7 +747,7 @@ export default function KbDetailPage() {
                     <div className="text-xs text-gray-500 mb-2 break-all">{dir.path}</div>
                     <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
                       <span>{t('pages.kbSync.syncType')}:{dir.syncType}</span>
-                      <span>{t('pages.kbSync.lastSync')}:{dir.last}</span>
+                      <span>{t('pages.kbSync.lastSync')}:{dir.last ? formatLocalDateTime(dir.last) : 'Never synced'}</span>
                     </div>
                     <div className="flex justify-end gap-2 mt-2">
                       <Button 
@@ -822,7 +823,7 @@ export default function KbDetailPage() {
                         return (
                           <tr key={log.id || i} className="border-b last:border-0 dark:border-gray-800">
                             <td className="px-4 py-2">
-                              {startTime.toLocaleString('en-US')}
+                              {formatLocalDateTime(log.startTime)}
                             </td>
                             <td className="px-4 py-2">
                               {syncDirs.find(dir => dir.id === log.syncDirectoryId)?.name || t('pages.kbSync.unknownDirectory')}

@@ -24,6 +24,7 @@ import { FileStatus } from "@/components/ui/file-status";
 import { FileOpener } from "@/components/ui/file-opener";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useTranslations } from '@/i18n/hooks';
+import { formatLocalDateTime } from "@/lib/utils";
 
 interface KbItem {
   id: number;
@@ -373,7 +374,7 @@ export default function KbPage() {
                             {/* Upload time */}
                             <div className="flex items-center gap-1">
                               <span>{t('pages.kb.uploadTime')}:</span>
-                              <span>{f.created_at ? (f.created_at.split('T')[0] + ' ' + (f.created_at.split('T')[1]?.slice(0,5) || '')) : ''}</span>
+                              <span>{formatLocalDateTime(f.created_at)}</span>
                             </div>
                             
                             {/* Status */}

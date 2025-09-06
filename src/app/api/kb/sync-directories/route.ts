@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
       name: dir.dirPath.split('/').pop() || dir.dirPath,
       path: dir.dirPath,
       syncType: dir.syncType === 'realtime' ? 'Real-time sync' : 'Manual sync',
-      last: latestSyncTime ? new Date(latestSyncTime).toLocaleString('en-US') : 'Never synced',
+      last: latestSyncTime || null,
       status: latestSyncTime ? 'Synced' : 'Not synced',
     };
   }));
