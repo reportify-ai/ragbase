@@ -56,6 +56,7 @@
       "operationSuccess": "操作成功",
       "operationFailed": "操作失败",
       "noData": "暂无数据",
+      "noDescription": "暂无描述",
       "unknown": "未知",
       "unknownStatus": "未知状态",
       "fileNotFound": "文件未找到",

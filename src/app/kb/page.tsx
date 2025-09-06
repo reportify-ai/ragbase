@@ -48,7 +48,7 @@ function TopCards({ kbs, onEdit, onDelete }: { kbs: KbItem[]; onEdit: (kb: KbIte
               </div>
               <div className="flex-1 flex flex-col">
                 <div className="font-medium truncate text-base" title={c.name}>{c.name}</div>
-                <div className="text-xs text-gray-400 truncate mt-1" title={c.description}>{c.description || t('common.messages.noData')}</div>
+                <div className="text-xs text-gray-400 truncate mt-1" title={c.description}>{c.description || t('common.messages.noDescription')}</div>
               </div>
             </Card>
           </Link>
