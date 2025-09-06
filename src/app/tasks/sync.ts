@@ -5,7 +5,7 @@ import { createFile, fileExists, fileNeedsSync, getFileRecord, updateFile } from
 import chokidar from 'chokidar';
 import { files, syncDirectories, documentChunks } from '../../db/schema';
 import { db } from '../../db';
-import { eq, isNull } from 'drizzle-orm';
+import { eq, isNull, and } from 'drizzle-orm';
 import { getAllSyncDirectories } from '../api/kb/sync-directories/db';
 import crypto from 'crypto';
 import { createSyncLog, getSyncLogsByDirectoryId, updateSyncLog } from '../api/kb/sync-logs/db';
@@ -27,9 +27,12 @@ async function hashFile(filePath: string): Promise<string> {
   });
 }
 
-// Check if there is a file with the same hash globally
-async function fileHashExists(hash: string): Promise<boolean> {
-  const result = await db.select({ id: files.id }).from(files).where(eq(files.hash, hash)).limit(1);
+// Check if there is a file with the same hash in the specified knowledge base
+async function fileHashExists(hash: string, kbId: number): Promise<boolean> {
+  const result = await db.select({ id: files.id })
+    .from(files)
+    .where(and(eq(files.hash, hash), eq(files.kb_id, kbId)))
+    .limit(1);
   return result.length > 0;
 }
 
@@ -114,9 +117,9 @@ async function scanDirectory(dir: string, syncDirectoryId: number, existingPaths
           last_processed: null
         });
       } else {
-        // Check global hash duplicate only for new files
-        if (await fileHashExists(hash)) {
-          console.log(`[ScanFilesTask] File already exists with same hash: ${fullPath}`);
+        // Check hash duplicate within the same knowledge base only for new files
+        if (await fileHashExists(hash, kbId)) {
+          console.log(`[ScanFilesTask] File already exists with same hash in KB ${kbId}: ${fullPath}`);
           continue;
         }
         
@@ -209,13 +212,13 @@ export function createRealtimeScanTask(scanPath: string, syncDirectoryId: number
             last_processed: null
           });
         } else {
-          // Check global hash duplicate only for new files
-          if (await fileHashExists(hash)) {
-            console.log(`[RealtimeScanTask] File already exists with same hash: ${filePath}`);
+          // Check hash duplicate within the same knowledge base only for new files
+          if (await fileHashExists(hash, kbId)) {
+            console.log(`[RealtimeScanTask] File already exists with same hash in KB ${kbId}: ${filePath}`);
             await updateSyncLog(syncLog.id, {
               endTime: new Date().toISOString(),
               status: 'success',
-              message: 'File skipped (duplicate hash)',
+              message: `File skipped (duplicate hash in KB ${kbId})`,
             });
             return;
           }
