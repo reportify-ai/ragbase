@@ -496,7 +496,7 @@ export default function KbDetailPage() {
 
   return (
     <div className="p-8 overflow-y-auto h-full">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-4xl mx-auto">
           <div className="flex items-center mb-4">
             <Button asChild variant="ghost" size="icon" className="mr-2 hover:cursor-pointer">
               <Link href="/kb"><ArrowLeft className="w-5 h-5" /></Link>

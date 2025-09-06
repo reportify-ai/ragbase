@@ -395,4 +395,107 @@ export class DocumentDB {
       };
     }
   }
+
+  // Delete specific files by their IDs
+  static async deleteFilesByIds(fileIds: number[]): Promise<{
+    deletedFiles: number;
+    deletedChunks: number;
+    deletedVectors: number;
+    errors: string[];
+  }> {
+    const errors: string[] = [];
+    let deletedFiles = 0;
+    let deletedChunks = 0;
+    let deletedVectors = 0;
+
+    try {
+      if (fileIds.length === 0) {
+        return { deletedFiles: 0, deletedChunks: 0, deletedVectors: 0, errors: [] };
+      }
+
+      console.log(`[DocumentDB] Deleting ${fileIds.length} files by IDs: ${fileIds.join(', ')}`);
+
+      // Step 1: Get file information for logging
+      const filesToDelete = await db
+        .select({ 
+          id: files.id, 
+          name: files.name,
+          path: files.path 
+        })
+        .from(files)
+        .where(inArray(files.id, fileIds));
+
+      console.log(`[DocumentDB] Found ${filesToDelete.length} files to delete`);
+
+      // Step 2: Get chunk counts for statistics
+      const chunkCount = await db
+        .select({ count: count() })
+        .from(documentChunks)
+        .where(inArray(documentChunks.file_id, fileIds));
+      
+      const totalChunks = Number(chunkCount[0]?.count || 0);
+
+      console.log(`[DocumentDB] Will delete ${totalChunks} chunks`);
+
+      // Step 3: Delete vector data from LanceDB
+      try {
+        // Get the knowledge base ID from the first file to determine which table to use
+        const firstFile = await db
+          .select({ kb_id: files.kb_id })
+          .from(files)
+          .where(eq(files.id, fileIds[0]))
+          .limit(1);
+        
+        const kbId = firstFile[0]?.kb_id;
+        if (!kbId) {
+          throw new Error(`Cannot determine knowledge base ID for files: ${fileIds.join(', ')}`);
+        }
+
+        const tableName = `kb_${kbId}`;
+        const lanceManager = await getLanceDBManager(tableName);
+        const vectorDeleteResult = await lanceManager.deleteDocumentsByFileIds(fileIds);
+        deletedVectors = vectorDeleteResult.totalDeleted; // Fix property name
+        console.log(`[DocumentDB] Deleted ${deletedVectors} vector documents from table ${tableName}`);
+      } catch (vectorError) {
+        const errorMsg = `Failed to delete vector data for files ${fileIds.join(', ')}: ${vectorError instanceof Error ? vectorError.message : 'Unknown error'}`;
+        console.error(`[DocumentDB] ${errorMsg}`);
+        errors.push(errorMsg);
+      }
+
+      // Step 4: Delete chunks from SQLite database
+      const deletedChunksResult = await db
+        .delete(documentChunks)
+        .where(inArray(documentChunks.file_id, fileIds));
+      
+      deletedChunks = deletedChunksResult.changes || 0;
+      console.log(`[DocumentDB] Deleted ${deletedChunks} chunks from database`);
+
+      // Step 5: Delete file records from SQLite database
+      const deletedFilesResult = await db
+        .delete(files)
+        .where(inArray(files.id, fileIds));
+      
+      deletedFiles = deletedFilesResult.changes || 0;
+      console.log(`[DocumentDB] Deleted ${deletedFiles} files from database`);
+
+      return {
+        deletedFiles,
+        deletedChunks,
+        deletedVectors,
+        errors
+      };
+
+    } catch (error) {
+      const errorMsg = `Failed to delete files ${fileIds.join(', ')}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      console.error(`[DocumentDB] ${errorMsg}`);
+      errors.push(errorMsg);
+      
+      return {
+        deletedFiles,
+        deletedChunks,
+        deletedVectors,
+        errors
+      };
+    }
+  }
 } 

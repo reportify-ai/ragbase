@@ -296,7 +296,7 @@ export default function KbPage() {
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
       <main className="flex-1 p-8 overflow-y-auto">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{t('pages.kb.title')}</h2>
             <Button

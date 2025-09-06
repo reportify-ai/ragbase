@@ -137,11 +137,41 @@ export class DocumentSplitter {
         break;
       
       case '.csv':
-        // CSV file split by line
+        // CSV file - preserve table structure, split by larger chunks to maintain table integrity
         options = {
-          chunkSize: 500,
-          chunkOverlap: 50,
-          separators: ['\n', ',', ' '],
+          chunkSize: 4000,
+          chunkOverlap: 400,
+          separators: ['\n\n*Total data rows:', '\n\n*File:', '\n\n', '\n# ', '\n'], 
+        };
+        break;
+      
+      case '.docx':
+      case '.doc':
+        // Word document - split by paragraphs
+        options = {
+          chunkSize: 1200,
+          chunkOverlap: 200,
+          separators: ['\n\n\n', '\n\n', '\n', '. ', ' '],
+        };
+        break;
+      
+      case '.xlsx':
+      case '.xls':
+        // Excel document - preserve table structure, split by sheets if needed
+        options = {
+          chunkSize: 2000,
+          chunkOverlap: 100,
+          separators: ['\n\n', '\n', '| ', ' '],
+        };
+        break;
+      
+      case '.pptx':
+      case '.ppt':
+        // PowerPoint - preserve slide structure, split by slides
+        options = {
+          chunkSize: 1500,
+          chunkOverlap: 200,
+          separators: ['\n# Slide ', '\n\n', '\n', '. ', ' '],
         };
         break;
       

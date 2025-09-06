@@ -30,7 +30,7 @@ function StepBar() {
   );
 }
 
-const DEFAULT_FILETYPES = ["pdf", "docx", "txt", "md"];
+const DEFAULT_FILETYPES = ["pdf", "docx", "xlsx", "pptx", "txt", "md", "doc", "xls", "ppt"];
 
 function KbSyncSettingPageContent() {
   const { t } = useTranslations();

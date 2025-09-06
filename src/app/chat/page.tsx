@@ -772,7 +772,7 @@ function ChatPageContent() {
         <div className="flex flex-col h-full flex-1 relative">
           {/* Scrollable content area including header and messages */}
           <div className="flex-1 overflow-y-auto" ref={chatContainerRef}>
-            <div className={`mx-auto ${showRelatedDocs ? 'max-w-3xl' : 'max-w-3xl'}`}>
+            <div className={`mx-auto ${showRelatedDocs ? 'max-w-sm sm:max-w-xl xl:max-w-3xl xl:px-4' : 'px-4 max-w-3xl'}`}>
               {/* Header - now inside scrollable area */}
               <div className="pt-8 pb-0">
                 <div className="flex items-center justify-between">
@@ -816,8 +816,8 @@ function ChatPageContent() {
           </div>
           
           {/* Floating input area */}
-          <div className="absolute bottom-0 left-0 right-0 px-8 py-4">
-            <div className={`mx-auto ${showRelatedDocs ? 'max-w-3xl' : 'max-w-3xl'}`}>
+          <div className="absolute bottom-0 left-0 right-0 py-4">
+            <div className={`mx-auto ${showRelatedDocs ? 'px-4 sm:px-6 max-w-sm sm:max-w-xl xl:max-w-3xl xl:px-8' : 'px-8 max-w-3xl'}`}>
               <SearchInputCard
                 value={input}
                 onChange={setInput}
@@ -839,7 +839,7 @@ function ChatPageContent() {
         
         {/* Related documents sidebar - can switch display/hide */}
         {showRelatedDocs && (
-          <div className="w-80 h-full border-l border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+          <div className="w-64 sm:w-72 md:w-80 h-full border-l border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
             <RelatedDocs onClose={() => setShowRelatedDocs(false)} />
           </div>
         )}

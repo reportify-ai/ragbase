@@ -2,6 +2,7 @@ import { Document } from '@langchain/core/documents';
 import path from 'path';
 import fs from 'fs/promises';
 import pdfParse from 'pdf-parse/lib/pdf-parse.js';
+import TurndownService from 'turndown';
 
 export interface DocumentLoadResult {
   documents: Document[];
@@ -32,6 +33,13 @@ export class DocumentLoader {
     '.json': 'application/json',
     '.csv': 'text/csv',
     '.pdf': 'application/pdf',
+    // Office documents
+    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    '.doc': 'application/msword',
+    '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    '.xls': 'application/vnd.ms-excel',
+    '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    '.ppt': 'application/vnd.ms-powerpoint',
   };
 
   static isSupportedFile(filePath: string): boolean {
@@ -170,6 +178,442 @@ export class DocumentLoader {
     };
   }
 
+  // Extract content from Word documents (.docx, .doc)
+  static async extractWordContent(filePath: string): Promise<{ text: string; metadata: { paragraphs: number; } }> {
+    try {
+      const mammoth = require('mammoth');
+      const buffer = await fs.readFile(filePath);
+      
+      const result = await mammoth.extractRawText(buffer);
+      const paragraphs = result.value.split('\n\n').filter((p: string) => p.trim().length > 0);
+      
+      return {
+        text: result.value,
+        metadata: {
+          paragraphs: paragraphs.length
+        }
+      };
+    } catch (error) {
+      console.error('Error extracting Word content:', error);
+      throw new Error(`Failed to extract Word content: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  // Extract content from Excel documents (.xlsx, .xls) as Markdown
+  static async extractExcelContent(filePath: string): Promise<{ sheets: Array<{ name: string; content: string; rows: number; cols: number; tableHeader?: string; headerRow?: string[]; }>; totalSheets: number; }> {
+    try {
+      const XLSX = require('xlsx');
+      const workbook = XLSX.readFile(filePath);
+      
+      const sheets = workbook.SheetNames.map((sheetName: string) => {
+        const worksheet = workbook.Sheets[sheetName];
+        
+        // Convert to JSON first to get structured data
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+        
+        // Convert to Markdown table format
+        let markdownContent = `# ${sheetName}\n\n`;
+        
+        if (jsonData.length > 0) {
+          // Create markdown table
+          const headers = jsonData[0] as any[];
+          const rows = jsonData.slice(1) as any[][];
+          
+          if (headers && headers.length > 0) {
+            // Escape markdown special characters in headers
+            const escapeMarkdown = (text: string): string => {
+              return text
+                .replace(/\|/g, '\\|')
+                .replace(/\n/g, ' ')
+                .replace(/\r/g, '')
+                .trim();
+            };
+
+            // Convert headers to strings and escape them
+            const cleanHeaders = headers.map(h => escapeMarkdown(String(h || '')));
+            
+            // Build table header (分离出来便于后续chunk使用)
+            const tableHeaderMarkdown = '| ' + cleanHeaders.join(' | ') + ' |\n' +
+                                       '| ' + cleanHeaders.map(() => '---').join(' | ') + ' |\n';
+            
+            markdownContent += tableHeaderMarkdown;
+            
+            // Table rows
+            rows.forEach(row => {
+              if (row && row.length > 0) {
+                const paddedRow = cleanHeaders.map((_, i) => escapeMarkdown(String(row[i] || '')));
+                markdownContent += '| ' + paddedRow.join(' | ') + ' |\n';
+              }
+            });
+
+            const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:A1');
+            
+            return {
+              name: sheetName,
+              content: markdownContent,
+              rows: range.e.r + 1,
+              cols: range.e.c + 1,
+              tableHeader: tableHeaderMarkdown,  // 分离的表头
+              headerRow: cleanHeaders            // 原始表头数组
+            };
+          }
+        }
+        
+        // Empty sheet or no headers
+        markdownContent += '*Empty sheet*\n';
+        const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:A1');
+        
+        return {
+          name: sheetName,
+          content: markdownContent,
+          rows: range.e.r + 1,
+          cols: range.e.c + 1,
+          tableHeader: undefined,
+          headerRow: undefined
+        };
+      });
+      
+      return {
+        sheets,
+        totalSheets: workbook.SheetNames.length
+      };
+    } catch (error) {
+      console.error('Error extracting Excel content:', error);
+      throw new Error(`Failed to extract Excel content: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  // Extract and convert CSV content to Markdown table
+  static async extractCsvContent(filePath: string): Promise<{ content: string; rowCount: number; columnCount: number; tableHeader?: string; headerRow?: string[]; }> {
+    try {
+      const csvContent = await fs.readFile(filePath, 'utf-8');
+      
+      // Parse CSV content - simple parser that handles basic CSV format
+      const lines = csvContent.split('\n').filter(line => line.trim().length > 0);
+      
+      if (lines.length === 0) {
+        return {
+          content: '*Empty CSV file*',
+          rowCount: 0,
+          columnCount: 0,
+          tableHeader: undefined,
+          headerRow: undefined
+        };
+      }
+      
+      // Parse CSV lines - handle quoted fields and commas
+      const parseCSVLine = (line: string): string[] => {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          
+          if (char === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+              // Handle escaped quotes
+              current += '"';
+              i++; // Skip next quote
+            } else {
+              // Toggle quote state
+              inQuotes = !inQuotes;
+            }
+          } else if (char === ',' && !inQuotes) {
+            // Field separator
+            result.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        
+        // Add last field
+        result.push(current.trim());
+        
+        return result.map(field => {
+          // Remove surrounding quotes if present
+          if (field.startsWith('"') && field.endsWith('"')) {
+            return field.slice(1, -1);
+          }
+          return field;
+        });
+      };
+      
+      // Parse all lines
+      const rows = lines.map(line => parseCSVLine(line));
+      
+      // Get column count from first row
+      const columnCount = rows.length > 0 ? rows[0].length : 0;
+      
+      // Ensure all rows have the same number of columns
+      const normalizedRows = rows.map(row => {
+        const normalizedRow = [...row];
+        // Pad with empty strings if needed
+        while (normalizedRow.length < columnCount) {
+          normalizedRow.push('');
+        }
+        // Truncate if too long
+        return normalizedRow.slice(0, columnCount);
+      });
+      
+      // Build Markdown table
+      let markdownContent = `# CSV Data\n\n`;
+      
+      if (normalizedRows.length > 0) {
+        // Add file info
+        markdownContent += `*File: ${path.basename(filePath)}*\n`;
+        markdownContent += `*Rows: ${normalizedRows.length}, Columns: ${columnCount}*\n\n`;
+        
+        // Create table headers (use first row as headers)
+        const headers = normalizedRows[0];
+        const dataRows = normalizedRows.slice(1);
+        
+        // Escape markdown special characters in cell content
+        const escapeMarkdown = (text: string): string => {
+          return text
+            .replace(/\|/g, '\\|')
+            .replace(/\n/g, ' ')
+            .replace(/\r/g, '')
+            .trim();
+        };
+        
+        // Build table header (分离出来便于后续chunk使用)
+        const tableHeaderMarkdown = '| ' + headers.map(escapeMarkdown).join(' | ') + ' |\n' +
+                                   '| ' + headers.map(() => '---').join(' | ') + ' |\n';
+        
+        markdownContent += tableHeaderMarkdown;
+        
+        // Build table rows
+        dataRows.forEach(row => {
+          markdownContent += '| ' + row.map(escapeMarkdown).join(' | ') + ' |\n';
+        });
+        
+        // Add summary
+        markdownContent += `\n*Total data rows: ${dataRows.length}*\n`;
+        
+        return {
+          content: markdownContent,
+          rowCount: normalizedRows.length,
+          columnCount: columnCount,
+          tableHeader: tableHeaderMarkdown,  // 分离的表头
+          headerRow: headers  // 原始表头数组
+        };
+      } else {
+        markdownContent += '*No data found in CSV file*\n';
+        
+        return {
+          content: markdownContent,
+          rowCount: normalizedRows.length,
+          columnCount: columnCount,
+          tableHeader: undefined,
+          headerRow: undefined
+        };
+      }
+    } catch (error) {
+      console.error('Error extracting CSV content:', error);
+      throw new Error(`Failed to extract CSV content: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  // Extract and convert HTML content to Markdown using turndown
+  static async extractHtmlContent(filePath: string): Promise<{ content: string; title?: string; }> {
+    try {
+      const htmlContent = await fs.readFile(filePath, 'utf-8');
+      
+      // Configure turndown service
+      const turndownService = new TurndownService({
+        headingStyle: 'atx',           // Use # style headings
+        codeBlockStyle: 'fenced',      // Use ``` for code blocks
+        bulletListMarker: '-',         // Use - for bullet lists
+        strongDelimiter: '**',         // Use ** for bold
+        emDelimiter: '*',              // Use * for italic
+        linkStyle: 'inlined',          // Use [text](url) style links
+        linkReferenceStyle: 'full',    // Full reference style
+      });
+
+      // Add custom rules for better conversion
+      turndownService.addRule('strikethrough', {
+        filter: ['del', 's'] as any, // TypeScript workaround for legacy HTML tags
+        replacement: function (content: string) {
+          return '~~' + content + '~~';
+        }
+      });
+
+      turndownService.addRule('underline', {
+        filter: ['u'],
+        replacement: function (content: string) {
+          return '<u>' + content + '</u>'; // Keep underline as HTML since MD doesn't support it
+        }
+      });
+
+      // Remove script and style content
+      turndownService.remove(['script', 'style', 'noscript']);
+
+      // Convert HTML to Markdown
+      const markdownContent = turndownService.turndown(htmlContent);
+      
+      // Extract title from HTML
+      const titleMatch = htmlContent.match(/<title[^>]*>(.*?)<\/title>/i);
+      const title = titleMatch ? titleMatch[1].trim() : undefined;
+      
+      return {
+        content: markdownContent,
+        title
+      };
+    } catch (error) {
+      console.error('Error extracting HTML content:', error);
+      throw new Error(`Failed to extract HTML content: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  // Extract content from PowerPoint documents (.pptx, .ppt)
+  static async extractPowerPointContent(filePath: string): Promise<{ slides: Array<{ slideNumber: number; content: string; }>; totalSlides: number; }> {
+    try {
+      const ext = path.extname(filePath).toLowerCase();
+      
+      if (ext === '.pptx') {
+        return await this.extractPptxContent(filePath);
+      } else if (ext === '.ppt') {
+        // .ppt files are binary format, more complex to parse
+        const fileName = path.basename(filePath);
+        console.warn(`Legacy .ppt format detected: ${fileName}. Consider converting to .pptx for better extraction.`);
+        
+        return {
+          slides: [{
+            slideNumber: 1,
+            content: `# PowerPoint Document: ${fileName}\n\n*This is a legacy .ppt format file. For better text extraction, please save as .pptx format.*\n\nTo convert:\n1. Open the file in PowerPoint\n2. Save As → PowerPoint Presentation (.pptx)\n3. Re-upload the converted file`
+          }],
+          totalSlides: 1
+        };
+      } else {
+        throw new Error(`Unsupported PowerPoint format: ${ext}`);
+      }
+    } catch (error) {
+      console.error('Error extracting PowerPoint content:', error);
+      throw new Error(`Failed to extract PowerPoint content: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  // Extract content from .pptx files
+  private static async extractPptxContent(filePath: string): Promise<{ slides: Array<{ slideNumber: number; content: string; }>; totalSlides: number; }> {
+    const JSZip = require('jszip');
+    const xml2js = require('xml2js');
+    
+    try {
+      // Read the .pptx file as a buffer
+      const buffer = await fs.readFile(filePath);
+      const zip = await JSZip.loadAsync(buffer);
+      
+      // Get all slide files
+      const slideFiles: Array<{ name: string; slideNumber: number; }> = [];
+      zip.forEach((relativePath: string, file: any) => {
+        if (relativePath.startsWith('ppt/slides/slide') && relativePath.endsWith('.xml')) {
+          const slideNumber = parseInt(relativePath.match(/slide(\d+)\.xml$/)?.[1] || '0');
+          if (slideNumber > 0) {
+            slideFiles.push({ name: relativePath, slideNumber });
+          }
+        }
+      });
+      
+      // Sort slides by number
+      slideFiles.sort((a, b) => a.slideNumber - b.slideNumber);
+      
+      const slides: Array<{ slideNumber: number; content: string; }> = [];
+      
+      // Process each slide
+      for (const slideFile of slideFiles) {
+        const slideXml = await zip.file(slideFile.name)?.async('text');
+        if (!slideXml) continue;
+        
+        // Parse XML and extract text content
+        const parser = new xml2js.Parser();
+        const result = await parser.parseStringPromise(slideXml);
+        
+        const slideContent = this.extractTextFromPptxSlide(result, slideFile.slideNumber);
+        if (slideContent.trim()) {
+          slides.push({
+            slideNumber: slideFile.slideNumber,
+            content: slideContent
+          });
+        }
+      }
+      
+      return {
+        slides,
+        totalSlides: slides.length
+      };
+      
+    } catch (error) {
+      console.error('Error parsing .pptx file:', error);
+      throw new Error(`Failed to parse .pptx file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  // Extract text content from a parsed PPTX slide XML
+  private static extractTextFromPptxSlide(slideXml: any, slideNumber: number): string {
+    let content = `# Slide ${slideNumber}\n\n`;
+    
+    try {
+      // Navigate through the XML structure to find text elements
+      const shapes = slideXml?.['p:sld']?.['p:cSld']?.[0]?.['p:spTree']?.[0]?.['p:sp'];
+      
+      if (shapes && Array.isArray(shapes)) {
+        for (const shape of shapes) {
+          const textBody = shape?.['p:txBody'];
+          if (textBody && Array.isArray(textBody)) {
+            for (const txBody of textBody) {
+              const paragraphs = txBody?.['a:p'];
+              if (paragraphs && Array.isArray(paragraphs)) {
+                for (const paragraph of paragraphs) {
+                  const textRuns = paragraph?.['a:r'];
+                  if (textRuns && Array.isArray(textRuns)) {
+                    for (const textRun of textRuns) {
+                      const text = textRun?.['a:t']?.[0];
+                      if (typeof text === 'string' && text.trim()) {
+                        content += text.trim() + ' ';
+                      }
+                    }
+                    content += '\n';
+                  }
+                  
+                  // Also check for direct text content
+                  const directText = paragraph?.['a:t'];
+                  if (directText && Array.isArray(directText)) {
+                    for (const text of directText) {
+                      if (typeof text === 'string' && text.trim()) {
+                        content += text.trim() + ' ';
+                      }
+                    }
+                    content += '\n';
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      // Clean up the content
+      content = content
+        .replace(/\n\s*\n\s*\n/g, '\n\n') // Remove multiple empty lines
+        .replace(/\s+/g, ' ') // Normalize spaces
+        .replace(/\n /g, '\n') // Remove spaces after newlines
+        .trim();
+      
+      // If no content was extracted, add a placeholder
+      if (content === `# Slide ${slideNumber}` || content.length < 20) {
+        content += '\n\n*No readable text content found in this slide*';
+      }
+      
+      return content;
+      
+    } catch (error) {
+      console.error(`Error extracting text from slide ${slideNumber}:`, error);
+      return `# Slide ${slideNumber}\n\n*Error extracting text from this slide*`;
+    }
+  }
+
   static async loadDocument(filePath: string): Promise<DocumentLoadResult> {
     const fileName = path.basename(filePath);
     const ext = path.extname(filePath).toLowerCase();
@@ -186,7 +630,7 @@ export class DocumentLoader {
       let documents: Document[] = [];
 
       // Process different types of files
-      if (['.txt', '.md', '.js', '.ts', '.py', '.java', '.cpp', '.c', '.html', '.xml', '.yaml', '.yml', '.json', '.csv'].includes(ext)) {
+      if (['.txt', '.md', '.js', '.ts', '.py', '.java', '.cpp', '.c', '.xml', '.yaml', '.yml', '.json'].includes(ext)) {
         // Text file
         const content = await fs.readFile(filePath, 'utf-8');
         documents = [
@@ -201,6 +645,49 @@ export class DocumentLoader {
               totalPages: 1,
               chunkIndex: 0,
               totalChunks: 1,
+            },
+          })
+        ];
+      } else if (ext === '.csv') {
+        // CSV file - convert to Markdown table
+        const { content, rowCount, columnCount, tableHeader, headerRow } = await this.extractCsvContent(filePath);
+        documents = [
+          new Document({
+            pageContent: content,
+            metadata: {
+              filePath,
+              fileName,
+              fileSize,
+              mimeType,
+              rowCount,
+              columnCount,
+              pageNumber: 1,
+              totalPages: 1,
+              chunkIndex: 0,
+              totalChunks: 1,
+              convertedFromCsv: true,
+              csvTableHeader: tableHeader,  // Markdown格式的表头
+              csvHeaderRow: headerRow,      // 原始表头数组
+            },
+          })
+        ];
+      } else if (ext === '.html') {
+        // HTML file - convert to Markdown using turndown
+        const { content, title } = await this.extractHtmlContent(filePath);
+        documents = [
+          new Document({
+            pageContent: content,
+            metadata: {
+              filePath,
+              fileName,
+              fileSize,
+              mimeType,
+              title,
+              pageNumber: 1,
+              totalPages: 1,
+              chunkIndex: 0,
+              totalChunks: 1,
+              convertedFromHtml: true, 
             },
           })
         ];
@@ -222,6 +709,67 @@ export class DocumentLoader {
               totalPages: totalPages,
               chunkIndex: index,
               totalChunks: pages.length,
+            },
+          })
+        );
+      } else if (['.docx', '.doc'].includes(ext)) {
+        // Word document
+        const { text, metadata } = await this.extractWordContent(filePath);
+        documents = [
+          new Document({
+            pageContent: text,
+            metadata: {
+              filePath,
+              fileName,
+              fileSize,
+              mimeType,
+              paragraphs: metadata.paragraphs,
+              pageNumber: 1,
+              totalPages: 1,
+              chunkIndex: 0,
+              totalChunks: 1,
+            },
+          })
+        ];
+      } else if (['.xlsx', '.xls'].includes(ext)) {
+        // Excel document - convert to markdown format
+        const { sheets, totalSheets } = await this.extractExcelContent(filePath);
+        documents = sheets.map((sheet, index) => 
+          new Document({
+            pageContent: sheet.content,
+            metadata: {
+              filePath,
+              fileName,
+              fileSize,
+              mimeType,
+              sheetName: sheet.name,
+              sheetNumber: index + 1,
+              totalSheets: totalSheets,
+              rows: sheet.rows,
+              cols: sheet.cols,
+              chunkIndex: index,
+              totalChunks: sheets.length,
+              convertedFromExcel: true,        // 标识这是从Excel转换的
+              excelTableHeader: sheet.tableHeader,  // Markdown格式的表头
+              excelHeaderRow: sheet.headerRow,      // 原始表头数组
+            },
+          })
+        );
+      } else if (['.pptx', '.ppt'].includes(ext)) {
+        // PowerPoint document
+        const { slides, totalSlides } = await this.extractPowerPointContent(filePath);
+        documents = slides.map((slide, index) => 
+          new Document({
+            pageContent: slide.content,
+            metadata: {
+              filePath,
+              fileName,
+              fileSize,
+              mimeType,
+              slideNumber: slide.slideNumber,
+              totalSlides: totalSlides,
+              chunkIndex: index,
+              totalChunks: slides.length,
             },
           })
         );

@@ -20,7 +20,7 @@ export default function SettingsPage() {
 
   return (
     <div className="p-8 overflow-y-auto h-full">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-800 dark:text-white">{t('pages.settings.title')}</h1>
           <LanguageSwitcher />
