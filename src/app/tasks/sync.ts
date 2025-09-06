@@ -342,10 +342,6 @@ export function createRealtimeScanTask(scanPath: string, syncDirectoryId: number
         // Delete document chunks first (foreign key constraint)
         await db.delete(documentChunks).where(eq(documentChunks.file_id, existingFile.id));
         
-        // Delete embeddings related to chunks
-        // Note: We should also delete embeddings, but it requires joining tables
-        // For now, we'll handle this separately if needed
-        
         // Delete the file record
         await db.delete(files).where(eq(files.id, existingFile.id));
         

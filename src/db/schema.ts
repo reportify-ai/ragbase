@@ -86,13 +86,6 @@ export const documentChunks = sqliteTable('document_chunks', {
   created_at: text('created_at').default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const embeddings = sqliteTable('embeddings', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  chunk_id: integer('chunk_id').notNull(),
-  embedding_model_id: integer('embedding_model_id').notNull(),
-  vector: text('vector').notNull(), // Store vector data in JSON format
-  created_at: text('created_at').default(sql`CURRENT_TIMESTAMP`),
-});
 
 export const chatSessions = sqliteTable('chat_sessions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -113,6 +106,15 @@ export const chatMessages = sqliteTable('chat_messages', {
   messageIndex: integer('message_index').notNull(),
   relatedDocuments: text('related_documents'), // JSON format
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const systemSettings = sqliteTable('system_settings', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  key: text('key').notNull().unique(),
+  value: text('value').notNull(),
+  description: text('description'),
+  created_at: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+  updated_at: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
 });
 
 export enum FileStatus {
@@ -164,6 +166,23 @@ export async function initData(db: any) {
         is_default: true
       });
       console.log('Default embedding model created');
+    }
+
+    // Initialize system settings
+    try {
+      const existingSettings = await db.select().from(systemSettings);
+      if (!existingSettings || existingSettings.length === 0) {
+        await db.insert(systemSettings).values([
+          {
+            key: 'delete_sync_dir_clean_data',
+            value: 'true',
+            description: 'Delete related files and vector data when removing sync directory'
+          }
+        ]);
+        console.log('Default system settings created');
+      }
+    } catch (error) {
+      console.warn('System settings table not yet available, will be initialized later:', error);
     }
   } catch (error) {
     console.error('Failed to initialize default data:', error);

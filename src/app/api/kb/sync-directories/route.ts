@@ -155,8 +155,58 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const { id } = await req.json();
-  if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
-  await deleteSyncDirectory(id);
-  return NextResponse.json({ success: true });
+  try {
+    const { id, cleanData } = await req.json();
+    
+    if (!id) {
+      return NextResponse.json({ error: 'id required' }, { status: 400 });
+    }
+
+    let deletionResult = null;
+
+    // If cleanData is explicitly set or system setting is enabled, clean up related data
+    if (cleanData) {
+      // Get sync directory info to get knowledge base ID
+      const syncDirInfo = await getSyncDirectoryById(id);
+      if (!syncDirInfo) {
+        return NextResponse.json({ error: 'Sync directory not found' }, { status: 404 });
+      }
+
+      console.log(`[DeleteSyncDirectory] Cleaning data for sync directory ${id} in KB ${syncDirInfo.kbId}`);
+      
+      // Import DocumentDB here to avoid circular imports
+      const { DocumentDB } = await import('@/lib/document/db');
+      
+      // Delete all files and related data from this sync directory
+      deletionResult = await DocumentDB.deleteFilesBySyncDirectoryId(id, syncDirInfo.kbId);
+      
+      console.log(`[DeleteSyncDirectory] Data cleanup completed:`, deletionResult);
+    }
+
+    // Delete the sync directory record
+    await deleteSyncDirectory(id);
+    
+    console.log(`[DeleteSyncDirectory] Sync directory ${id} deleted successfully`);
+
+    const response: any = { 
+      success: true, 
+      message: 'Sync directory deleted successfully' 
+    };
+
+    // Include deletion statistics if data was cleaned
+    if (deletionResult) {
+      response.deletionResult = deletionResult;
+    }
+
+    return NextResponse.json(response);
+  } catch (error) {
+    console.error('Failed to delete sync directory:', error);
+    return NextResponse.json(
+      { 
+        error: 'Failed to delete sync directory', 
+        details: error instanceof Error ? error.message : 'Unknown error' 
+      },
+      { status: 500 }
+    );
+  }
 } 

@@ -149,6 +149,12 @@
       "syncType": "同步类型",
       "lastSync": "上次同步",
       "confirmDeleteSyncDir": "确定要删除同步目录「{name}」吗？删除后该目录将不再同步到知识库。",
+      "confirmDeleteSyncDirWithData": "确定要删除同步目录「{name}」及其所有相关数据吗？这将删除该目录下所有文件的记录、文本块和向量数据，无法恢复。",
+      "confirmDeleteSyncDirOnly": "确定要删除同步目录「{name}」吗？这将仅移除同步关系，保留文件数据。",
+      "deleteSyncDirSuccess": "同步目录删除成功",
+      "deletedFilesCount": "已删除 {count} 个文件记录",
+      "deletedChunksCount": "已删除 {count} 个文本块",
+      "warningMessages": "警告信息：",
       "syncNow": "立即同步",
       "viewAllSyncRecords": "查看所有目录的同步记录",
       "syncTime": "同步时间",
@@ -201,7 +207,7 @@
     "settings": {
       "title": "设置",
       "modelSettings": "模型设置",
-      "knowledgeSettings": "知识设置",
+      "knowledgeSettings": "知识库设置",
       "appSettings": "应用设置",
       "about": "关于",
       "languageSettings": "语言设置",
@@ -216,7 +222,14 @@
       "ollama": "Ollama",
       "openai": "OpenAI",
       "setAsDefaultEmbeddingModel": "设为默认嵌入模型",
-      "default": "默认"
+      "default": "默认",
+      "syncDirectoryManagement": "同步目录管理",
+      "deleteWithDataCleanup": "删除同步目录时清理相关数据",
+      "deleteWithDataCleanupDesc": "删除同步目录时同时删除该目录下所有文件的数据库记录和向量数据。禁用此选项仅删除同步关系，保留文件数据。",
+      "dataManagement": "数据管理",
+      "deleteWithDataOption": "将删除所有相关的文件记录、文本块和向量数据",
+      "deleteWithoutDataOption": "仅移除同步关系，保留所有文件数据",
+      "systemDefaultCleanDataEnabled": "系统默认启用数据清理"
     },
     "chatHistory": {
       "title": "对话历史",

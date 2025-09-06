@@ -13,6 +13,7 @@ import { KbModal } from "@/components/ui/kb-modal";
 import { FileStatus } from "@/components/ui/file-status";
 import { FileOpener } from "@/components/ui/file-opener";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { SyncDirDeleteDialog } from "@/components/ui/sync-dir-delete-dialog";
 import { useTranslations } from '@/i18n/hooks';
 
 interface KbItem {
@@ -89,6 +90,14 @@ export default function KbDetailPage() {
   const [syncDirToDelete, setSyncDirToDelete] = useState<any>(null);
   const [showDeleteFileDialog, setShowDeleteFileDialog] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<number | null>(null);
+  
+  // State for sync directory deletion options
+  const [cleanDataOnDelete, setCleanDataOnDelete] = useState(true);
+  const [systemCleanDataSetting, setSystemCleanDataSetting] = useState(true);
+  
+  // State for delete result notification
+  const [deleteResult, setDeleteResult] = useState<any>(null);
+  const [showDeleteResult, setShowDeleteResult] = useState(false);
 
   useEffect(() => {
     if (kbId) {
@@ -110,6 +119,32 @@ export default function KbDetailPage() {
       setFilesTotal(0);
     }
   }, [kbId, filePage]);
+
+  // Load system setting for delete sync directory data cleanup
+  useEffect(() => {
+    async function loadSystemSetting() {
+      try {
+        const response = await fetch('/api/settings?key=delete_sync_dir_clean_data');
+        if (response.ok) {
+          const setting = await response.json();
+          const shouldCleanData = setting.value === 'true';
+          setSystemCleanDataSetting(shouldCleanData);
+          setCleanDataOnDelete(shouldCleanData);
+        } else if (response.status === 404) {
+          // Setting not found, use default
+          setSystemCleanDataSetting(true);
+          setCleanDataOnDelete(true);
+        }
+      } catch (error) {
+        console.error('Failed to load system setting:', error);
+        // Use default on error
+        setSystemCleanDataSetting(true);
+        setCleanDataOnDelete(true);
+      }
+    }
+    
+    loadSystemSetting();
+  }, []);
 
   // Set auto refresh timer
   useEffect(() => {
@@ -304,10 +339,23 @@ export default function KbDetailPage() {
       const res = await fetch('/api/kb/sync-directories', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: syncDirToDelete.id })
+        body: JSON.stringify({ 
+          id: syncDirToDelete.id,
+          cleanData: cleanDataOnDelete
+        })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t('api.errors.deleteFailed'));
+      
+      // Show deletion result if data was cleaned
+      if (cleanDataOnDelete && data.deletionResult) {
+        setDeleteResult(data.deletionResult);
+        setShowDeleteResult(true);
+        // Auto hide after 10 seconds
+        setTimeout(() => {
+          setShowDeleteResult(false);
+        }, 10000);
+      }
       
       // Refresh data after successful deletion
       await refreshData();
@@ -315,6 +363,7 @@ export default function KbDetailPage() {
       alert(e.message || t('api.errors.deleteFailed'));
     } finally {
       setSyncDirToDelete(null);
+      setShowDeleteSyncDirDialog(false);
     }
   }
 
@@ -397,6 +446,52 @@ export default function KbDetailPage() {
               </>
             )}
           </div>
+          
+          {/* Delete Result Notification */}
+          {showDeleteResult && deleteResult && (
+            <div className="mb-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-green-800 dark:text-green-200">
+                      {t('pages.kbSync.deleteSyncDirSuccess')}
+                    </h3>
+                    <div className="mt-2 text-sm text-green-700 dark:text-green-300">
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li>{t('pages.kbSync.deletedFilesCount', { count: deleteResult.deletedFiles })}</li>
+                        <li>{t('pages.kbSync.deletedChunksCount', { count: deleteResult.deletedChunks })}</li>
+                      </ul>
+                      {deleteResult.errors && deleteResult.errors.length > 0 && (
+                        <div className="mt-3">
+                          <p className="font-medium">{t('pages.kbSync.warningMessages')}</p>
+                          <ul className="mt-1 list-disc pl-5">
+                            {deleteResult.errors.map((error: string, index: number) => (
+                              <li key={index} className="text-yellow-700 dark:text-yellow-300">{error}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="ml-3 inline-flex text-green-400 hover:text-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                  onClick={() => setShowDeleteResult(false)}
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+          
           <Card className="mb-8">
             <CardHeader className="pb-2 flex flex-row items-center justify-between">
               <span className="text-base font-semibold">{t('pages.kb.allFiles')}</span>
@@ -699,14 +794,14 @@ export default function KbDetailPage() {
         </div>
       
       {/* Delete Confirmation Dialogs */}
-      <ConfirmDialog
+      <SyncDirDeleteDialog
         isOpen={showDeleteSyncDirDialog}
         onClose={() => setShowDeleteSyncDirDialog(false)}
         onConfirm={handleDeleteSyncDir}
-        message={syncDirToDelete ? t('pages.kbSync.confirmDeleteSyncDir', { name: syncDirToDelete.name }) : ''}
-        confirmText={t('common.buttons.delete')}
-        cancelText={t('common.buttons.cancel')}
-        confirmVariant="destructive"
+        syncDirName={syncDirToDelete?.name || ''}
+        cleanData={cleanDataOnDelete}
+        onCleanDataChange={setCleanDataOnDelete}
+        systemDefaultCleanData={systemCleanDataSetting}
       />
       
       <ConfirmDialog
