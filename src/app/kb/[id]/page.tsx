@@ -734,14 +734,23 @@ export default function KbDetailPage() {
                         className={`ml-2 px-2 py-0.5 rounded text-xs font-medium ${
                           syncingId === dir.id || batchSyncingIds.has(dir.id)
                             ? 'bg-blue-50 text-blue-700 animate-pulse'
-                            : dir.status === t('pages.kbSync.synced')
+                            : dir.status === 'Synced'
                             ? 'bg-green-50 text-green-700'
-                            : dir.status === t('pages.kbSync.manuallyPaused')
+                            : dir.status === 'Manually Paused'
                             ? 'bg-yellow-50 text-yellow-700'
                             : 'bg-gray-100 text-gray-700'
                         }`}
                       >
-                        {syncingId === dir.id || batchSyncingIds.has(dir.id) ? t('pages.kbSync.syncing') : dir.status}
+                        {syncingId === dir.id || batchSyncingIds.has(dir.id) 
+                          ? t('pages.kbSync.syncing') 
+                          : dir.status === 'Synced'
+                          ? t('pages.kbSync.synced')
+                          : dir.status === 'Manually Paused'
+                          ? t('pages.kbSync.manuallyPaused')
+                          : dir.status === 'Not synced'
+                          ? t('pages.kbSync.notSynced')
+                          : dir.status
+                        }
                       </span>
                     </div>
                     <div className="text-xs text-gray-500 mb-2 break-all">{dir.path}</div>

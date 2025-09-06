@@ -146,6 +146,7 @@
       "noSyncDirectories": "暂无同步目录",
       "syncing": "正在同步...",
       "synced": "已同步",
+      "notSynced": "未同步",
       "manuallyPaused": "手动暂停",
       "syncType": "同步类型",
       "lastSync": "上次同步",
