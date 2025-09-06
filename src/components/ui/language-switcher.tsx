@@ -9,7 +9,7 @@ import { locales, type Locale } from '@/i18n/config';
 import { useTranslations } from '@/i18n/hooks';
 
 const languageNames: Record<Locale, string> = {
-  zh: 'Chinese',
+  zh: '中文',
   en: 'English'
 };
 
