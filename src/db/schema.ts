@@ -60,6 +60,7 @@ export const files = sqliteTable('files', {
   content_length: integer('content_length'),
   last_processed: text('last_processed'),
   error_message: text('error_message'),
+  file_mtime: text('file_mtime'), // File system modification time
 });
 
 export const syncDirectoryLogs = sqliteTable('sync_directory_logs', {

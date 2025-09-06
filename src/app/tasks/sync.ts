@@ -1,11 +1,11 @@
 import { promises as fs } from 'fs';
 import { createReadStream } from 'fs';
 import path from 'path';
-import { createFile, fileExists } from '../api/kb/files/db';
+import { createFile, fileExists, fileNeedsSync, getFileRecord, updateFile } from '../api/kb/files/db';
 import chokidar from 'chokidar';
-import { files, syncDirectories } from '../../db/schema';
+import { files, syncDirectories, documentChunks } from '../../db/schema';
 import { db } from '../../db';
-import { eq } from 'drizzle-orm';
+import { eq, isNull } from 'drizzle-orm';
 import { getAllSyncDirectories } from '../api/kb/sync-directories/db';
 import crypto from 'crypto';
 import { createSyncLog, getSyncLogsByDirectoryId, updateSyncLog } from '../api/kb/sync-logs/db';
@@ -81,11 +81,18 @@ async function scanDirectory(dir: string, syncDirectoryId: number, existingPaths
       }
       
       if (existingPaths.has(fullPath)) continue;
-      if (await fileExists(fullPath, syncDirectoryId)) continue;
+      
       const stat = await fs.stat(fullPath);
+      const fileSystemMtime = stat.mtime.toISOString();
+      
+      // Check if file needs sync based on modification time
+      if (!await fileNeedsSync(fullPath, syncDirectoryId, fileSystemMtime)) {
+        console.log(`[ScanFilesTask] File up to date: ${fullPath}`);
+        continue;
+      }
+      
       const hash = await hashFile(fullPath);
-      if (await fileHashExists(hash)) continue; // Global hash duplicate check
-      console.log(`[ScanFilesTask] New file: ${fullPath}, size: ${stat.size}, hash: ${hash}, syncDirId: ${syncDirectoryId}`);
+      const existingFile = await getFileRecord(fullPath, syncDirectoryId);
       
       // Get the knowledge base ID corresponding to the sync directory
       const syncDir = await db.select({ kbId: syncDirectories.kbId })
@@ -95,16 +102,39 @@ async function scanDirectory(dir: string, syncDirectoryId: number, existingPaths
       
       const kbId = syncDir[0]?.kbId || 1; // Default to use knowledge base with ID 1
       
-      await createFile({
-        name: entry.name,
-        path: fullPath,
-        size: stat.size,
-        hash,
-        created_at: new Date().toISOString(),
-        status: 0,
-        sync_directory_id: syncDirectoryId,
-        kb_id: kbId,
-      });
+      if (existingFile) {
+        // File exists but needs update
+        console.log(`[ScanFilesTask] Updating file: ${fullPath}, size: ${stat.size}, hash: ${hash}, syncDirId: ${syncDirectoryId}`);
+        await updateFile(existingFile.id, {
+          size: stat.size,
+          hash,
+          file_mtime: fileSystemMtime,
+          status: 0, // Reset to pending for reprocessing
+          error_message: null,
+          last_processed: null
+        });
+      } else {
+        // Check global hash duplicate only for new files
+        if (await fileHashExists(hash)) {
+          console.log(`[ScanFilesTask] File already exists with same hash: ${fullPath}`);
+          continue;
+        }
+        
+        // New file
+        console.log(`[ScanFilesTask] New file: ${fullPath}, size: ${stat.size}, hash: ${hash}, syncDirId: ${syncDirectoryId}`);
+        await createFile({
+          name: entry.name,
+          path: fullPath,
+          size: stat.size,
+          hash,
+          created_at: new Date().toISOString(),
+          status: 0,
+          sync_directory_id: syncDirectoryId,
+          kb_id: kbId,
+          file_mtime: fileSystemMtime,
+        });
+      }
+      
       existingPaths.add(fullPath);
     }
   }
@@ -143,17 +173,18 @@ export function createRealtimeScanTask(scanPath: string, syncDirectoryId: number
           return;
         }
         
-        if (await fileExists(filePath, syncDirectoryId)) {
-          console.log(`[RealtimeScanTask] File already exists: ${filePath}`);
+        const stat = await fs.stat(filePath);
+        const fileSystemMtime = stat.mtime.toISOString();
+        
+        // Check if file needs sync based on modification time
+        if (!await fileNeedsSync(filePath, syncDirectoryId, fileSystemMtime)) {
+          console.log(`[RealtimeScanTask] File up to date: ${filePath}`);
           return;
         }
-        const stat = await fs.stat(filePath);
+        
         const hash = await hashFile(filePath);
-        if (await fileHashExists(hash)) {
-          console.log(`[RealtimeScanTask] File already exists with same hash: ${filePath}`);
-          return; // Global hash duplicate check
-        }
-        console.log(`[RealtimeScanTask] New file: ${filePath}, size: ${stat.size}, hash: ${hash}, syncDirId: ${syncDirectoryId}`);
+        const existingFile = await getFileRecord(filePath, syncDirectoryId);
+        
         // First create sync log record
         const startTime = new Date().toISOString();
         const syncLog = await createSyncLog({
@@ -165,16 +196,45 @@ export function createRealtimeScanTask(scanPath: string, syncDirectoryId: number
           syncedFiles: 0,
           failedFiles: 0,
         });
-        await createFile({
-          name: path.basename(filePath),
-          path: filePath,
-          size: stat.size,
-          hash,
-          created_at: new Date().toISOString(),
-          status: 0,
-          sync_directory_id: syncDirectoryId,
-          kb_id: kbId,
-        });
+        
+        if (existingFile) {
+          // File exists but needs update
+          console.log(`[RealtimeScanTask] Updating file: ${filePath}, size: ${stat.size}, hash: ${hash}, syncDirId: ${syncDirectoryId}`);
+          await updateFile(existingFile.id, {
+            size: stat.size,
+            hash,
+            file_mtime: fileSystemMtime,
+            status: 0, // Reset to pending for reprocessing
+            error_message: null,
+            last_processed: null
+          });
+        } else {
+          // Check global hash duplicate only for new files
+          if (await fileHashExists(hash)) {
+            console.log(`[RealtimeScanTask] File already exists with same hash: ${filePath}`);
+            await updateSyncLog(syncLog.id, {
+              endTime: new Date().toISOString(),
+              status: 'success',
+              message: 'File skipped (duplicate hash)',
+            });
+            return;
+          }
+          
+          // New file
+          console.log(`[RealtimeScanTask] New file: ${filePath}, size: ${stat.size}, hash: ${hash}, syncDirId: ${syncDirectoryId}`);
+          await createFile({
+            name: path.basename(filePath),
+            path: filePath,
+            size: stat.size,
+            hash,
+            created_at: new Date().toISOString(),
+            status: 0,
+            sync_directory_id: syncDirectoryId,
+            kb_id: kbId,
+            file_mtime: fileSystemMtime,
+          });
+        }
+        
         await updateSyncLog(syncLog.id, {
           syncedFiles: (syncLog.syncedFiles || 0) + 1,
           totalFiles: (syncLog.totalFiles || 0) + 1,
@@ -187,14 +247,172 @@ export function createRealtimeScanTask(scanPath: string, syncDirectoryId: number
         // Extendable: log error here
       }
     });
-    // Extendable: listen to 'unlink', 'change' etc. events
+    
+    // Listen to file change events
+    watcher.on('change', async (filePath) => {
+      try {
+        // Ignore hidden files or temporary files
+        if (ignoreHidden && isHiddenOrTempFile(filePath)) {
+          console.log(`[RealtimeScanTask] Skipping hidden/temp file change: ${filePath}`);
+          return;
+        }
+        
+        const stat = await fs.stat(filePath);
+        const fileSystemMtime = stat.mtime.toISOString();
+        
+        // Check if file needs sync based on modification time
+        if (!await fileNeedsSync(filePath, syncDirectoryId, fileSystemMtime)) {
+          console.log(`[RealtimeScanTask] File change ignored (up to date): ${filePath}`);
+          return;
+        }
+        
+        const hash = await hashFile(filePath);
+        const existingFile = await getFileRecord(filePath, syncDirectoryId);
+        
+        if (!existingFile) {
+          console.log(`[RealtimeScanTask] File changed but not in database: ${filePath}`);
+          return;
+        }
+        
+        console.log(`[RealtimeScanTask] File changed: ${filePath}, size: ${stat.size}, hash: ${hash}, syncDirId: ${syncDirectoryId}`);
+        
+        // First create sync log record
+        const startTime = new Date().toISOString();
+        const syncLog = await createSyncLog({
+          syncDirectoryId,
+          kbId,
+          startTime,
+          status: 'running',
+          totalFiles: 0,
+          syncedFiles: 0,
+          failedFiles: 0,
+        });
+        
+        // Update file record
+        await updateFile(existingFile.id, {
+          size: stat.size,
+          hash,
+          file_mtime: fileSystemMtime,
+          status: 0, // Reset to pending for reprocessing
+          error_message: null,
+          last_processed: null
+        });
+        
+        await updateSyncLog(syncLog.id, {
+          syncedFiles: (syncLog.syncedFiles || 0) + 1,
+          totalFiles: (syncLog.totalFiles || 0) + 1,
+          endTime: new Date().toISOString(),
+          status: 'success',
+          message: 'File change synced',
+        });
+      } catch (err) {
+        console.error('[RealtimeScanTask] Error handling file change:', err);
+      }
+    });
+    
+    // Listen to file deletion events
+    watcher.on('unlink', async (filePath) => {
+      try {
+        console.log(`[RealtimeScanTask] File deleted: ${filePath}`);
+        
+        const existingFile = await getFileRecord(filePath, syncDirectoryId);
+        if (!existingFile) {
+          console.log(`[RealtimeScanTask] Deleted file not found in database: ${filePath}`);
+          return;
+        }
+        
+        // First create sync log record
+        const startTime = new Date().toISOString();
+        const syncLog = await createSyncLog({
+          syncDirectoryId,
+          kbId,
+          startTime,
+          status: 'running',
+          totalFiles: 0,
+          syncedFiles: 0,
+          failedFiles: 0,
+        });
+        
+        // Delete file record and related data
+        console.log(`[RealtimeScanTask] Removing file record for: ${filePath} (id: ${existingFile.id})`);
+        
+        // Delete document chunks first (foreign key constraint)
+        await db.delete(documentChunks).where(eq(documentChunks.file_id, existingFile.id));
+        
+        // Delete embeddings related to chunks
+        // Note: We should also delete embeddings, but it requires joining tables
+        // For now, we'll handle this separately if needed
+        
+        // Delete the file record
+        await db.delete(files).where(eq(files.id, existingFile.id));
+        
+        await updateSyncLog(syncLog.id, {
+          syncedFiles: (syncLog.syncedFiles || 0) + 1,
+          totalFiles: (syncLog.totalFiles || 0) + 1,
+          endTime: new Date().toISOString(),
+          status: 'success',
+          message: 'File deletion synced',
+        });
+        
+        console.log(`[RealtimeScanTask] Successfully cleaned up deleted file: ${filePath}`);
+      } catch (err) {
+        console.error('[RealtimeScanTask] Error handling file deletion:', err);
+      }
+    });
+    
     // Keep watcher running
     return Promise.resolve();
   };
 }
 
+// Update existing files with modification time
+export async function updateExistingFilesWithMtime() {
+  try {
+    console.log('[UpdateFilesMtime] Starting to update existing files with modification time...');
+    
+    // Get all files without file_mtime
+    const filesWithoutMtime = await db.select().from(files).where(isNull(files.file_mtime));
+    console.log(`[UpdateFilesMtime] Found ${filesWithoutMtime.length} files without modification time`);
+    
+    let updated = 0;
+    let failed = 0;
+    
+    for (const file of filesWithoutMtime) {
+      try {
+        // Check if file still exists on filesystem
+        const stat = await fs.stat(file.path);
+        const fileSystemMtime = stat.mtime.toISOString();
+        
+        // Update the file record
+        await updateFile(file.id, {
+          file_mtime: fileSystemMtime,
+        });
+        
+        updated++;
+        console.log(`[UpdateFilesMtime] Updated: ${file.path} (${updated}/${filesWithoutMtime.length})`);
+      } catch (err) {
+        failed++;
+        console.warn(`[UpdateFilesMtime] Failed to update ${file.path}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        
+        // If file doesn't exist on filesystem, we could mark it for cleanup
+        // For now, just log the issue
+        if ((err as any).code === 'ENOENT') {
+          console.log(`[UpdateFilesMtime] File not found on filesystem: ${file.path}`);
+        }
+      }
+    }
+    
+    console.log(`[UpdateFilesMtime] Completed: ${updated} updated, ${failed} failed`);
+  } catch (err) {
+    console.error('[UpdateFilesMtime] Failed to update existing files:', err);
+  }
+}
+
 export async function startAllRealtimeSyncTasks() {
   try {
+    // First, update existing files with modification time
+    await updateExistingFilesWithMtime();
+    
     const syncDirs = await getAllSyncDirectories();
     for (const dir of syncDirs) {
       if (dir.syncType === 'realtime') {
