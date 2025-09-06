@@ -122,7 +122,7 @@ export class DocumentService {
         });
       });
 
-      console.log("[DocumentService] documents:", documents.slice(0, 3));
+      // console.log("[DocumentService] documents:", documents.slice(0, 3));
 
       try {
         // Get LanceDB manager for this knowledge base

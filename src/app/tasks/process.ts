@@ -64,7 +64,7 @@ export class DocumentTaskProcessor {
 
         if (failed.length > 0) {
           console.log('[tasks/processing] Failed files:', failed.map(f => f.fileName));
-          console.log('[tasks/processing] Failed files details:', results);
+          // console.log('[tasks/processing] Failed files details:', results);
         }
       } catch (error) {
         console.error('[tasks/processing] Error processing batch:', error);

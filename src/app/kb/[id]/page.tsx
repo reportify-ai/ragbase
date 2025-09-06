@@ -72,6 +72,7 @@ export default function KbDetailPage() {
   const [editKb, setEditKb] = useState<KbItem | null>(null);
 
   const [syncingId, setSyncingId] = useState<number | null>(null);
+  const [batchSyncingIds, setBatchSyncingIds] = useState<Set<number>>(new Set());
 
   const [syncLogs, setSyncLogs] = useState<any[]>([]);
   const [syncLogsLoading, setSyncLogsLoading] = useState(false);
@@ -367,6 +368,70 @@ export default function KbDetailPage() {
     }
   }
 
+  // Sync all directories
+  async function handleSyncAllDirectories() {
+    if (syncDirs.length === 0) return;
+    
+    try {
+      // Don't use setSyncDirsLoading to avoid disabling individual buttons unnecessarily
+      const allDirIds = syncDirs.map(dir => dir.id);
+      setBatchSyncingIds(new Set(allDirIds));
+      
+      // Start sync for all directories with individual status tracking
+      const syncPromises = syncDirs.map(async (dir) => {
+        try {
+          const res = await fetch('/api/kb/sync-directories', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ syncDirectoryId: dir.id })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || `Sync failed for ${dir.name}`);
+          
+          // Remove this directory from syncing set when done
+          setBatchSyncingIds(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(dir.id);
+            return newSet;
+          });
+          
+          return { success: true, dirName: dir.name, dirId: dir.id };
+        } catch (error) {
+          console.error(`Sync failed for directory ${dir.name}:`, error);
+          
+          // Remove this directory from syncing set even if failed
+          setBatchSyncingIds(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(dir.id);
+            return newSet;
+          });
+          
+          return { success: false, dirName: dir.name, dirId: dir.id, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+      });
+      
+      const results = await Promise.allSettled(syncPromises);
+      
+      // Check results and show feedback
+      const successful = results.filter(result => 
+        result.status === 'fulfilled' && result.value.success
+      ).length;
+      const failed = results.length - successful;
+      
+      // Silent success - no dialog popup
+      console.log(`Sync completed: ${successful} successful, ${failed} failed`);
+      
+      // Refresh data after all sync operations complete
+      await refreshData();
+    } catch (error) {
+      console.error('Sync all directories failed:', error);
+      // Silent error handling - no dialog popup
+    } finally {
+      // Ensure all syncing states are cleared
+      setBatchSyncingIds(new Set());
+    }
+  }
+
   // Show delete file confirmation dialog
   function showDeleteFileConfirmation(fileId: number) {
     setFileToDelete(fileId);
@@ -520,9 +585,6 @@ export default function KbDetailPage() {
                   )}
                   {t('common.buttons.refresh')}
                 </Button>
-                <Button asChild size="sm" variant="outline" className="flex items-center gap-1 hover:cursor-pointer">
-                  <Link href={`/kb/sync?kb=${kbId}`}><FolderSync className="w-4 h-4" />{t('pages.kb.syncDirectories')}</Link>
-                </Button>
               </div>
             </CardHeader>
             <CardContent className="p-0">
@@ -634,9 +696,25 @@ export default function KbDetailPage() {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-2">
               <span className="text-base font-semibold">{t('pages.kbSync.syncDirectorySettings')}</span>
-              <Button asChild size="sm" variant="outline" className="hover:cursor-pointer">
-                <Link href={`/kb/sync?step=0&kb=${kbId}`}>+ {t('pages.kbSync.addSync')}</Link>
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="flex items-center gap-1"
+                  onClick={handleSyncAllDirectories}
+                  disabled={!!syncingId || batchSyncingIds.size > 0 || syncDirs.length === 0}
+                >
+                  {batchSyncingIds.size > 0 ? (
+                    <div className="animate-spin h-4 w-4 border-2 border-gray-500 border-t-transparent rounded-full"></div>
+                  ) : (
+                    <FolderSync className="w-4 h-4" />
+                  )}
+                  {batchSyncingIds.size > 0 ? t('pages.kbSync.syncing') : t('pages.kb.syncDirectories')}
+                </Button>
+                <Button asChild size="sm" variant="outline" className="hover:cursor-pointer">
+                  <Link href={`/kb/sync?step=0&kb=${kbId}`}>+ {t('pages.kbSync.addSync')}</Link>
+                </Button>
+              </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {syncDirsLoading ? (
@@ -653,7 +731,7 @@ export default function KbDetailPage() {
                       <span className="font-medium">{dir.name}</span>
                       <span
                         className={`ml-2 px-2 py-0.5 rounded text-xs font-medium ${
-                          syncingId === dir.id
+                          syncingId === dir.id || batchSyncingIds.has(dir.id)
                             ? 'bg-blue-50 text-blue-700 animate-pulse'
                             : dir.status === t('pages.kbSync.synced')
                             ? 'bg-green-50 text-green-700'
@@ -662,7 +740,7 @@ export default function KbDetailPage() {
                             : 'bg-gray-100 text-gray-700'
                         }`}
                       >
-                        {syncingId === dir.id ? t('pages.kbSync.syncing') : dir.status}
+                        {syncingId === dir.id || batchSyncingIds.has(dir.id) ? t('pages.kbSync.syncing') : dir.status}
                       </span>
                     </div>
                     <div className="text-xs text-gray-500 mb-2 break-all">{dir.path}</div>
@@ -682,7 +760,7 @@ export default function KbDetailPage() {
                       <Button
                         size="sm"
                         variant="default"
-                        disabled={!!syncingId}
+                        disabled={!!syncingId || batchSyncingIds.size > 0 || batchSyncingIds.has(dir.id)}
                         onClick={async () => {
                           setSyncingId(dir.id);
                           try {
