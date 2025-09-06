@@ -146,6 +146,7 @@
       "noSyncDirectories": "No sync directories",
       "syncing": "Syncing...",
       "synced": "Synced",
+      "notSynced": "Not synced",
       "manuallyPaused": "Manually Paused",
       "syncType": "Sync Type",
       "lastSync": "Last Sync",
