@@ -32,6 +32,13 @@ export class DocumentLoader {
     '.json': 'application/json',
     '.csv': 'text/csv',
     '.pdf': 'application/pdf',
+    // Office documents
+    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    '.doc': 'application/msword',
+    '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    '.xls': 'application/vnd.ms-excel',
+    '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    '.ppt': 'application/vnd.ms-powerpoint',
   };
 
   static isSupportedFile(filePath: string): boolean {
@@ -170,6 +177,231 @@ export class DocumentLoader {
     };
   }
 
+  // Extract content from Word documents (.docx, .doc)
+  static async extractWordContent(filePath: string): Promise<{ text: string; metadata: { paragraphs: number; } }> {
+    try {
+      const mammoth = require('mammoth');
+      const buffer = await fs.readFile(filePath);
+      
+      const result = await mammoth.extractRawText(buffer);
+      const paragraphs = result.value.split('\n\n').filter((p: string) => p.trim().length > 0);
+      
+      return {
+        text: result.value,
+        metadata: {
+          paragraphs: paragraphs.length
+        }
+      };
+    } catch (error) {
+      console.error('Error extracting Word content:', error);
+      throw new Error(`Failed to extract Word content: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  // Extract content from Excel documents (.xlsx, .xls) as Markdown
+  static async extractExcelContent(filePath: string): Promise<{ sheets: Array<{ name: string; content: string; rows: number; cols: number; }>; totalSheets: number; }> {
+    try {
+      const XLSX = require('xlsx');
+      const workbook = XLSX.readFile(filePath);
+      
+      const sheets = workbook.SheetNames.map((sheetName: string) => {
+        const worksheet = workbook.Sheets[sheetName];
+        
+        // Convert to JSON first to get structured data
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+        
+        // Convert to Markdown table format
+        let markdownContent = `# ${sheetName}\n\n`;
+        
+        if (jsonData.length > 0) {
+          // Create markdown table
+          const headers = jsonData[0] as any[];
+          const rows = jsonData.slice(1) as any[][];
+          
+          if (headers && headers.length > 0) {
+            // Table headers
+            markdownContent += '| ' + headers.map(h => String(h || '')).join(' | ') + ' |\n';
+            markdownContent += '| ' + headers.map(() => '---').join(' | ') + ' |\n';
+            
+            // Table rows
+            rows.forEach(row => {
+              if (row && row.length > 0) {
+                const paddedRow = headers.map((_, i) => String(row[i] || ''));
+                markdownContent += '| ' + paddedRow.join(' | ') + ' |\n';
+              }
+            });
+          }
+        } else {
+          markdownContent += '*Empty sheet*\n';
+        }
+        
+        const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:A1');
+        
+        return {
+          name: sheetName,
+          content: markdownContent,
+          rows: range.e.r + 1,
+          cols: range.e.c + 1
+        };
+      });
+      
+      return {
+        sheets,
+        totalSheets: workbook.SheetNames.length
+      };
+    } catch (error) {
+      console.error('Error extracting Excel content:', error);
+      throw new Error(`Failed to extract Excel content: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  // Extract content from PowerPoint documents (.pptx, .ppt)
+  static async extractPowerPointContent(filePath: string): Promise<{ slides: Array<{ slideNumber: number; content: string; }>; totalSlides: number; }> {
+    try {
+      const ext = path.extname(filePath).toLowerCase();
+      
+      if (ext === '.pptx') {
+        return await this.extractPptxContent(filePath);
+      } else if (ext === '.ppt') {
+        // .ppt files are binary format, more complex to parse
+        const fileName = path.basename(filePath);
+        console.warn(`Legacy .ppt format detected: ${fileName}. Consider converting to .pptx for better extraction.`);
+        
+        return {
+          slides: [{
+            slideNumber: 1,
+            content: `# PowerPoint Document: ${fileName}\n\n*This is a legacy .ppt format file. For better text extraction, please save as .pptx format.*\n\nTo convert:\n1. Open the file in PowerPoint\n2. Save As → PowerPoint Presentation (.pptx)\n3. Re-upload the converted file`
+          }],
+          totalSlides: 1
+        };
+      } else {
+        throw new Error(`Unsupported PowerPoint format: ${ext}`);
+      }
+    } catch (error) {
+      console.error('Error extracting PowerPoint content:', error);
+      throw new Error(`Failed to extract PowerPoint content: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  // Extract content from .pptx files
+  private static async extractPptxContent(filePath: string): Promise<{ slides: Array<{ slideNumber: number; content: string; }>; totalSlides: number; }> {
+    const JSZip = require('jszip');
+    const xml2js = require('xml2js');
+    
+    try {
+      // Read the .pptx file as a buffer
+      const buffer = await fs.readFile(filePath);
+      const zip = await JSZip.loadAsync(buffer);
+      
+      // Get all slide files
+      const slideFiles: Array<{ name: string; slideNumber: number; }> = [];
+      zip.forEach((relativePath: string, file: any) => {
+        if (relativePath.startsWith('ppt/slides/slide') && relativePath.endsWith('.xml')) {
+          const slideNumber = parseInt(relativePath.match(/slide(\d+)\.xml$/)?.[1] || '0');
+          if (slideNumber > 0) {
+            slideFiles.push({ name: relativePath, slideNumber });
+          }
+        }
+      });
+      
+      // Sort slides by number
+      slideFiles.sort((a, b) => a.slideNumber - b.slideNumber);
+      
+      const slides: Array<{ slideNumber: number; content: string; }> = [];
+      
+      // Process each slide
+      for (const slideFile of slideFiles) {
+        const slideXml = await zip.file(slideFile.name)?.async('text');
+        if (!slideXml) continue;
+        
+        // Parse XML and extract text content
+        const parser = new xml2js.Parser();
+        const result = await parser.parseStringPromise(slideXml);
+        
+        const slideContent = this.extractTextFromPptxSlide(result, slideFile.slideNumber);
+        if (slideContent.trim()) {
+          slides.push({
+            slideNumber: slideFile.slideNumber,
+            content: slideContent
+          });
+        }
+      }
+      
+      return {
+        slides,
+        totalSlides: slides.length
+      };
+      
+    } catch (error) {
+      console.error('Error parsing .pptx file:', error);
+      throw new Error(`Failed to parse .pptx file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  // Extract text content from a parsed PPTX slide XML
+  private static extractTextFromPptxSlide(slideXml: any, slideNumber: number): string {
+    let content = `# Slide ${slideNumber}\n\n`;
+    
+    try {
+      // Navigate through the XML structure to find text elements
+      const shapes = slideXml?.['p:sld']?.['p:cSld']?.[0]?.['p:spTree']?.[0]?.['p:sp'];
+      
+      if (shapes && Array.isArray(shapes)) {
+        for (const shape of shapes) {
+          const textBody = shape?.['p:txBody'];
+          if (textBody && Array.isArray(textBody)) {
+            for (const txBody of textBody) {
+              const paragraphs = txBody?.['a:p'];
+              if (paragraphs && Array.isArray(paragraphs)) {
+                for (const paragraph of paragraphs) {
+                  const textRuns = paragraph?.['a:r'];
+                  if (textRuns && Array.isArray(textRuns)) {
+                    for (const textRun of textRuns) {
+                      const text = textRun?.['a:t']?.[0];
+                      if (typeof text === 'string' && text.trim()) {
+                        content += text.trim() + ' ';
+                      }
+                    }
+                    content += '\n';
+                  }
+                  
+                  // Also check for direct text content
+                  const directText = paragraph?.['a:t'];
+                  if (directText && Array.isArray(directText)) {
+                    for (const text of directText) {
+                      if (typeof text === 'string' && text.trim()) {
+                        content += text.trim() + ' ';
+                      }
+                    }
+                    content += '\n';
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      // Clean up the content
+      content = content
+        .replace(/\n\s*\n\s*\n/g, '\n\n') // Remove multiple empty lines
+        .replace(/\s+/g, ' ') // Normalize spaces
+        .replace(/\n /g, '\n') // Remove spaces after newlines
+        .trim();
+      
+      // If no content was extracted, add a placeholder
+      if (content === `# Slide ${slideNumber}` || content.length < 20) {
+        content += '\n\n*No readable text content found in this slide*';
+      }
+      
+      return content;
+      
+    } catch (error) {
+      console.error(`Error extracting text from slide ${slideNumber}:`, error);
+      return `# Slide ${slideNumber}\n\n*Error extracting text from this slide*`;
+    }
+  }
+
   static async loadDocument(filePath: string): Promise<DocumentLoadResult> {
     const fileName = path.basename(filePath);
     const ext = path.extname(filePath).toLowerCase();
@@ -222,6 +454,64 @@ export class DocumentLoader {
               totalPages: totalPages,
               chunkIndex: index,
               totalChunks: pages.length,
+            },
+          })
+        );
+      } else if (['.docx', '.doc'].includes(ext)) {
+        // Word document
+        const { text, metadata } = await this.extractWordContent(filePath);
+        documents = [
+          new Document({
+            pageContent: text,
+            metadata: {
+              filePath,
+              fileName,
+              fileSize,
+              mimeType,
+              paragraphs: metadata.paragraphs,
+              pageNumber: 1,
+              totalPages: 1,
+              chunkIndex: 0,
+              totalChunks: 1,
+            },
+          })
+        ];
+      } else if (['.xlsx', '.xls'].includes(ext)) {
+        // Excel document - convert to markdown format
+        const { sheets, totalSheets } = await this.extractExcelContent(filePath);
+        documents = sheets.map((sheet, index) => 
+          new Document({
+            pageContent: sheet.content,
+            metadata: {
+              filePath,
+              fileName,
+              fileSize,
+              mimeType,
+              sheetName: sheet.name,
+              sheetNumber: index + 1,
+              totalSheets: totalSheets,
+              rows: sheet.rows,
+              cols: sheet.cols,
+              chunkIndex: index,
+              totalChunks: sheets.length,
+            },
+          })
+        );
+      } else if (['.pptx', '.ppt'].includes(ext)) {
+        // PowerPoint document
+        const { slides, totalSlides } = await this.extractPowerPointContent(filePath);
+        documents = slides.map((slide, index) => 
+          new Document({
+            pageContent: slide.content,
+            metadata: {
+              filePath,
+              fileName,
+              fileSize,
+              mimeType,
+              slideNumber: slide.slideNumber,
+              totalSlides: totalSlides,
+              chunkIndex: index,
+              totalChunks: slides.length,
             },
           })
         );
