@@ -122,7 +122,7 @@ export class DocumentService {
         });
       });
 
-      console.log("[DocumentService] documents:", documents.slice(0, 3));
+      // console.log("[DocumentService] documents:", documents.slice(0, 3));
 
       try {
         // Get LanceDB manager for this knowledge base
@@ -279,7 +279,6 @@ export class DocumentService {
     };
     chunkStats: {
       totalChunks: number;
-      totalEmbeddings: number;
       averageChunksPerFile: number;
     };
   }> {
@@ -298,10 +297,4 @@ export class DocumentService {
     return await DocumentDB.getFileChunks(fileId);
   }
 
-  /**
-   * Get embeddings for a file
-   */
-  static async getFileEmbeddings(fileId: number, embeddingModelId?: number) {
-    return await DocumentDB.getFileEmbeddings(fileId, embeddingModelId);
-  }
 } 

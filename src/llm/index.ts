@@ -5,6 +5,9 @@ import { Embeddings } from "@langchain/core/embeddings";
 import { LanceDBManager } from './lancedb'
 import * as embeddingsDb from '../app/api/embeddings/db';
 
+// Disable Rust logging for LanceDB
+process.env.RUST_LOG = 'off';
+
 /**
  * Embedding provider types
  */

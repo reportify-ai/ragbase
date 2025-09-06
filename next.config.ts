@@ -1,5 +1,8 @@
 import type { NextConfig } from "next";
 
+// Disable Rust logging for LanceDB
+process.env.RUST_LOG = 'off';
+
 const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,

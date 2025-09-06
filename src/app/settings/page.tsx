@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { ModelList } from '@/components/settings/model-list';
 import { EmbeddingList } from '@/components/settings/embedding-list';
+import { KnowledgeSettings } from '@/components/settings/knowledge-settings';
 
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
 import { useTranslations } from '@/i18n/hooks';
@@ -50,9 +51,7 @@ export default function SettingsPage() {
             </>
           )}
           {activeTab === 'knowledge' && (
-            <div className="text-gray-500 dark:text-gray-400">
-              {t('common.messages.noData')}
-            </div>
+            <KnowledgeSettings />
           )}
           {activeTab === 'app' && (
             <div className="text-gray-500 dark:text-gray-400">

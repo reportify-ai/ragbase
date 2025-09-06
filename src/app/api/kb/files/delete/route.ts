@@ -40,9 +40,9 @@ export async function POST(req: NextRequest) {
       console.warn(`Sync directory with ID ${fileInfo.sync_directory_id} not found, proceeding with deletion anyway`);
     }
 
-    // Step 3: Delete document chunks and embeddings from database
+    // Step 3: Delete document chunks from database
     await DocumentDB.deleteFileData(id);
-    console.log(`Deleted chunks and embeddings for file ID ${id}`);
+    console.log(`Deleted chunks for file ID ${id}`);
 
     // Step 4: Delete from vector database if we have KB info
     if (dirInfo?.kbId) {

@@ -56,6 +56,7 @@
       "operationSuccess": "Operation successful",
       "operationFailed": "Operation failed",
       "noData": "No data available",
+      "noDescription": "No description",
       "unknown": "Unknown",
       "unknownStatus": "Unknown status",
       "fileNotFound": "File not found",
@@ -149,6 +150,12 @@
       "syncType": "Sync Type",
       "lastSync": "Last Sync",
       "confirmDeleteSyncDir": "Are you sure you want to delete sync directory \"{name}\"? After deletion, this directory will no longer sync to the knowledge base.",
+      "confirmDeleteSyncDirWithData": "Are you sure you want to delete sync directory \"{name}\" and all its related data? This will delete all file records, text chunks, and vector data from this directory, which cannot be recovered.",
+      "confirmDeleteSyncDirOnly": "Are you sure you want to delete sync directory \"{name}\"? This will only remove the sync relationship while keeping file data.",
+      "deleteSyncDirSuccess": "Sync directory deleted successfully",
+      "deletedFilesCount": "Deleted {count} file records",
+      "deletedChunksCount": "Deleted {count} text chunks",
+      "warningMessages": "Warning messages:",
       "syncNow": "Sync Now",
       "viewAllSyncRecords": "View all directory sync records",
       "syncTime": "Sync Time",
@@ -218,7 +225,14 @@
       "ollama": "Ollama",
       "openai": "OpenAI",
       "setAsDefaultEmbeddingModel": "Set as default embedding model",
-      "default": "Default"      
+      "default": "Default",
+      "syncDirectoryManagement": "Sync Directory Management",
+      "deleteWithDataCleanup": "Clean up related data when deleting sync directory",
+      "deleteWithDataCleanupDesc": "When deleting a sync directory, also delete all file records and vector data from that directory. Disable this option to only remove sync relationship while keeping file data.",
+      "dataManagement": "Data Management",
+      "deleteWithDataOption": "Will delete all related file records, text chunks and vector data",
+      "deleteWithoutDataOption": "Only remove sync relationship, keep all file data",
+      "systemDefaultCleanDataEnabled": "System default enables data cleanup"
     },
     "chatHistory": {
       "title": "Chat History",
@@ -315,7 +329,21 @@
       "loadKbFailed": "Load knowledge base failed",
       "loadSyncLogsFailed": "Load sync logs failed",
       "loadFailed": "Load failed",
-      "syncFailed": "Sync failed"
+      "syncFailed": "Sync failed",
+      "kbIdRequired": "Knowledge base ID is required",
+      "directoryAlreadyExists": "Directory already exists",
+      "directoryExistsMessage": "Directory \"{dirPath}\" already exists in the knowledge base. Please choose another directory or use the existing one.",
+      "syncDirectoryIdRequired": "Sync directory ID is required",
+      "syncDirectoryNotFound": "Sync directory not found",
+      "manualSyncFailed": "Manual sync failed",
+      "idRequired": "ID is required",
+      "deleteSyncDirectoryFailed": "Failed to delete sync directory"
+    },
+    "messages": {
+      "firstTimeAddingDirectory": "First time adding directory auto record",
+      "syncCompleted": "Sync completed",
+      "manualSyncTriggered": "Manual sync triggered for directory {dirPath}",
+      "syncDirectoryDeletedSuccessfully": "Sync directory deleted successfully"
     },
     "success": {
       "modelCreated": "Model created successfully",

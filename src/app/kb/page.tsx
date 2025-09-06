@@ -24,6 +24,7 @@ import { FileStatus } from "@/components/ui/file-status";
 import { FileOpener } from "@/components/ui/file-opener";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useTranslations } from '@/i18n/hooks';
+import { formatLocalDateTime } from "@/lib/utils";
 
 interface KbItem {
   id: number;
@@ -47,7 +48,7 @@ function TopCards({ kbs, onEdit, onDelete }: { kbs: KbItem[]; onEdit: (kb: KbIte
               </div>
               <div className="flex-1 flex flex-col">
                 <div className="font-medium truncate text-base" title={c.name}>{c.name}</div>
-                <div className="text-xs text-gray-400 truncate mt-1" title={c.description}>{c.description || t('common.messages.noData')}</div>
+                <div className="text-xs text-gray-400 truncate mt-1" title={c.description}>{c.description || t('common.messages.noDescription')}</div>
               </div>
             </Card>
           </Link>
@@ -373,7 +374,7 @@ export default function KbPage() {
                             {/* Upload time */}
                             <div className="flex items-center gap-1">
                               <span>{t('pages.kb.uploadTime')}:</span>
-                              <span>{f.created_at ? (f.created_at.split('T')[0] + ' ' + (f.created_at.split('T')[1]?.slice(0,5) || '')) : ''}</span>
+                              <span>{formatLocalDateTime(f.created_at)}</span>
                             </div>
                             
                             {/* Status */}

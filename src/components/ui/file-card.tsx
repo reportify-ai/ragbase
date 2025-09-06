@@ -5,6 +5,7 @@ import { FileStatus } from './file-status';
 import { FileOpener } from './file-opener';
 import { Button } from './button';
 import { Play, Trash2 } from 'lucide-react';
+import { formatLocalDateTime } from '@/lib/utils';
 
 interface FileCardProps {
   file: {
@@ -65,7 +66,7 @@ export const FileCard: React.FC<FileCardProps> = ({
           {file.created_at && (
             <div className="flex items-center gap-1">
               <span>Upload time:</span>
-              <span>{file.created_at.split('T')[0] + ' ' + (file.created_at.split('T')[1]?.slice(0,5) || '')}</span>
+              <span>{formatLocalDateTime(file.created_at)}</span>
             </div>
           )}
           

@@ -56,6 +56,7 @@
       "operationSuccess": "操作成功",
       "operationFailed": "操作失败",
       "noData": "暂无数据",
+      "noDescription": "暂无描述",
       "unknown": "未知",
       "unknownStatus": "未知状态",
       "fileNotFound": "文件未找到",
@@ -119,7 +120,7 @@
       "totalFiles": "共 {count} 条",
       "confirmDeleteKb": "确定要删除知识库「{name}」吗？",
       "confirmDeleteFile": "确定要删除此文件吗？这将同时删除文件记录、文本块和向量数据，无法恢复。",
-      "syncDirectories": "同步目录",
+      "syncDirectories": "同步全部目录",
       "syncLogs": "同步日志",
       "fileStatus": {
         "pending": "待处理",
@@ -149,6 +150,12 @@
       "syncType": "同步类型",
       "lastSync": "上次同步",
       "confirmDeleteSyncDir": "确定要删除同步目录「{name}」吗？删除后该目录将不再同步到知识库。",
+      "confirmDeleteSyncDirWithData": "确定要删除同步目录「{name}」及其所有相关数据吗？这将删除该目录下所有文件的记录、文本块和向量数据，无法恢复。",
+      "confirmDeleteSyncDirOnly": "确定要删除同步目录「{name}」吗？这将仅移除同步关系，保留文件数据。",
+      "deleteSyncDirSuccess": "同步目录删除成功",
+      "deletedFilesCount": "已删除 {count} 个文件记录",
+      "deletedChunksCount": "已删除 {count} 个文本块",
+      "warningMessages": "警告信息：",
       "syncNow": "立即同步",
       "viewAllSyncRecords": "查看所有目录的同步记录",
       "syncTime": "同步时间",
@@ -201,7 +208,7 @@
     "settings": {
       "title": "设置",
       "modelSettings": "模型设置",
-      "knowledgeSettings": "知识设置",
+      "knowledgeSettings": "知识库设置",
       "appSettings": "应用设置",
       "about": "关于",
       "languageSettings": "语言设置",
@@ -216,7 +223,14 @@
       "ollama": "Ollama",
       "openai": "OpenAI",
       "setAsDefaultEmbeddingModel": "设为默认嵌入模型",
-      "default": "默认"
+      "default": "默认",
+      "syncDirectoryManagement": "同步目录管理",
+      "deleteWithDataCleanup": "删除同步目录时清理相关数据",
+      "deleteWithDataCleanupDesc": "删除同步目录时同时删除该目录下所有文件的数据库记录和向量数据。禁用此选项仅删除同步关系，保留文件数据。",
+      "dataManagement": "数据管理",
+      "deleteWithDataOption": "将删除所有相关的文件记录、文本块和向量数据",
+      "deleteWithoutDataOption": "仅移除同步关系，保留所有文件数据",
+      "systemDefaultCleanDataEnabled": "系统默认启用数据清理"
     },
     "chatHistory": {
       "title": "对话历史",
@@ -313,7 +327,21 @@
       "loadKbFailed": "加载知识库失败",
       "loadSyncLogsFailed": "加载同步历史失败",
       "loadFailed": "加载失败",
-      "syncFailed": "同步失败"
+      "syncFailed": "同步失败",
+      "kbIdRequired": "知识库ID为必填项",
+      "directoryAlreadyExists": "目录已存在",
+      "directoryExistsMessage": "目录 \"{dirPath}\" 已存在于该知识库中。请选择其他目录或使用现有目录。",
+      "syncDirectoryIdRequired": "同步目录ID为必填项",
+      "syncDirectoryNotFound": "同步目录未找到",
+      "manualSyncFailed": "手动同步失败",
+      "idRequired": "ID为必填项",
+      "deleteSyncDirectoryFailed": "删除同步目录失败"
+    },
+    "messages": {
+      "firstTimeAddingDirectory": "首次添加目录自动记录",
+      "syncCompleted": "同步完成",
+      "manualSyncTriggered": "已为目录 {dirPath} 触发手动同步",
+      "syncDirectoryDeletedSuccessfully": "同步目录删除成功"
     },
     "success": {
       "modelCreated": "模型创建成功",

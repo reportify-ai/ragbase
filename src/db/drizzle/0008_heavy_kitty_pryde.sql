@@ -1,0 +1,1 @@
+ALTER TABLE `sync_directories` ADD `delete_files_on_remove` integer DEFAULT false NOT NULL;

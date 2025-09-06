@@ -13,7 +13,9 @@ import { KbModal } from "@/components/ui/kb-modal";
 import { FileStatus } from "@/components/ui/file-status";
 import { FileOpener } from "@/components/ui/file-opener";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { SyncDirDeleteDialog } from "@/components/ui/sync-dir-delete-dialog";
 import { useTranslations } from '@/i18n/hooks';
+import { formatLocalDateTime } from "@/lib/utils";
 
 interface KbItem {
   id: number;
@@ -71,6 +73,7 @@ export default function KbDetailPage() {
   const [editKb, setEditKb] = useState<KbItem | null>(null);
 
   const [syncingId, setSyncingId] = useState<number | null>(null);
+  const [batchSyncingIds, setBatchSyncingIds] = useState<Set<number>>(new Set());
 
   const [syncLogs, setSyncLogs] = useState<any[]>([]);
   const [syncLogsLoading, setSyncLogsLoading] = useState(false);
@@ -89,6 +92,14 @@ export default function KbDetailPage() {
   const [syncDirToDelete, setSyncDirToDelete] = useState<any>(null);
   const [showDeleteFileDialog, setShowDeleteFileDialog] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<number | null>(null);
+  
+  // State for sync directory deletion options
+  const [cleanDataOnDelete, setCleanDataOnDelete] = useState(true);
+  const [systemCleanDataSetting, setSystemCleanDataSetting] = useState(true);
+  
+  // State for delete result notification
+  const [deleteResult, setDeleteResult] = useState<any>(null);
+  const [showDeleteResult, setShowDeleteResult] = useState(false);
 
   useEffect(() => {
     if (kbId) {
@@ -110,6 +121,32 @@ export default function KbDetailPage() {
       setFilesTotal(0);
     }
   }, [kbId, filePage]);
+
+  // Load system setting for delete sync directory data cleanup
+  useEffect(() => {
+    async function loadSystemSetting() {
+      try {
+        const response = await fetch('/api/settings?key=delete_sync_dir_clean_data');
+        if (response.ok) {
+          const setting = await response.json();
+          const shouldCleanData = setting.value === 'true';
+          setSystemCleanDataSetting(shouldCleanData);
+          setCleanDataOnDelete(shouldCleanData);
+        } else if (response.status === 404) {
+          // Setting not found, use default
+          setSystemCleanDataSetting(true);
+          setCleanDataOnDelete(true);
+        }
+      } catch (error) {
+        console.error('Failed to load system setting:', error);
+        // Use default on error
+        setSystemCleanDataSetting(true);
+        setCleanDataOnDelete(true);
+      }
+    }
+    
+    loadSystemSetting();
+  }, []);
 
   // Set auto refresh timer
   useEffect(() => {
@@ -304,10 +341,23 @@ export default function KbDetailPage() {
       const res = await fetch('/api/kb/sync-directories', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: syncDirToDelete.id })
+        body: JSON.stringify({ 
+          id: syncDirToDelete.id,
+          cleanData: cleanDataOnDelete
+        })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t('api.errors.deleteFailed'));
+      
+      // Show deletion result if data was cleaned
+      if (cleanDataOnDelete && data.deletionResult) {
+        setDeleteResult(data.deletionResult);
+        setShowDeleteResult(true);
+        // Auto hide after 10 seconds
+        setTimeout(() => {
+          setShowDeleteResult(false);
+        }, 10000);
+      }
       
       // Refresh data after successful deletion
       await refreshData();
@@ -315,6 +365,71 @@ export default function KbDetailPage() {
       alert(e.message || t('api.errors.deleteFailed'));
     } finally {
       setSyncDirToDelete(null);
+      setShowDeleteSyncDirDialog(false);
+    }
+  }
+
+  // Sync all directories
+  async function handleSyncAllDirectories() {
+    if (syncDirs.length === 0) return;
+    
+    try {
+      // Don't use setSyncDirsLoading to avoid disabling individual buttons unnecessarily
+      const allDirIds = syncDirs.map(dir => dir.id);
+      setBatchSyncingIds(new Set(allDirIds));
+      
+      // Start sync for all directories with individual status tracking
+      const syncPromises = syncDirs.map(async (dir) => {
+        try {
+          const res = await fetch('/api/kb/sync-directories', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ syncDirectoryId: dir.id })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || `Sync failed for ${dir.name}`);
+          
+          // Remove this directory from syncing set when done
+          setBatchSyncingIds(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(dir.id);
+            return newSet;
+          });
+          
+          return { success: true, dirName: dir.name, dirId: dir.id };
+        } catch (error) {
+          console.error(`Sync failed for directory ${dir.name}:`, error);
+          
+          // Remove this directory from syncing set even if failed
+          setBatchSyncingIds(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(dir.id);
+            return newSet;
+          });
+          
+          return { success: false, dirName: dir.name, dirId: dir.id, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+      });
+      
+      const results = await Promise.allSettled(syncPromises);
+      
+      // Check results and show feedback
+      const successful = results.filter(result => 
+        result.status === 'fulfilled' && result.value.success
+      ).length;
+      const failed = results.length - successful;
+      
+      // Silent success - no dialog popup
+      console.log(`Sync completed: ${successful} successful, ${failed} failed`);
+      
+      // Refresh data after all sync operations complete
+      await refreshData();
+    } catch (error) {
+      console.error('Sync all directories failed:', error);
+      // Silent error handling - no dialog popup
+    } finally {
+      // Ensure all syncing states are cleared
+      setBatchSyncingIds(new Set());
     }
   }
 
@@ -397,6 +512,52 @@ export default function KbDetailPage() {
               </>
             )}
           </div>
+          
+          {/* Delete Result Notification */}
+          {showDeleteResult && deleteResult && (
+            <div className="mb-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-green-800 dark:text-green-200">
+                      {t('pages.kbSync.deleteSyncDirSuccess')}
+                    </h3>
+                    <div className="mt-2 text-sm text-green-700 dark:text-green-300">
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li>{t('pages.kbSync.deletedFilesCount', { count: deleteResult.deletedFiles })}</li>
+                        <li>{t('pages.kbSync.deletedChunksCount', { count: deleteResult.deletedChunks })}</li>
+                      </ul>
+                      {deleteResult.errors && deleteResult.errors.length > 0 && (
+                        <div className="mt-3">
+                          <p className="font-medium">{t('pages.kbSync.warningMessages')}</p>
+                          <ul className="mt-1 list-disc pl-5">
+                            {deleteResult.errors.map((error: string, index: number) => (
+                              <li key={index} className="text-yellow-700 dark:text-yellow-300">{error}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="ml-3 inline-flex text-green-400 hover:text-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                  onClick={() => setShowDeleteResult(false)}
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+          
           <Card className="mb-8">
             <CardHeader className="pb-2 flex flex-row items-center justify-between">
               <span className="text-base font-semibold">{t('pages.kb.allFiles')}</span>
@@ -424,9 +585,6 @@ export default function KbDetailPage() {
                     <RefreshCw className="w-4 h-4" />
                   )}
                   {t('common.buttons.refresh')}
-                </Button>
-                <Button asChild size="sm" variant="outline" className="flex items-center gap-1 hover:cursor-pointer">
-                  <Link href={`/kb/sync?kb=${kbId}`}><FolderSync className="w-4 h-4" />{t('pages.kb.syncDirectories')}</Link>
                 </Button>
               </div>
             </CardHeader>
@@ -461,7 +619,7 @@ export default function KbDetailPage() {
                             {/* Upload time */}
                             <div className="flex items-center gap-1">
                               <span>{t('pages.kb.uploadTime')}:</span>
-                              <span>{f.created_at ? (f.created_at.split('T')[0] + ' ' + (f.created_at.split('T')[1]?.slice(0,5) || '')) : ''}</span>
+                              <span>{formatLocalDateTime(f.created_at)}</span>
                             </div>
                             
                             {/* Status */}
@@ -539,9 +697,25 @@ export default function KbDetailPage() {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-2">
               <span className="text-base font-semibold">{t('pages.kbSync.syncDirectorySettings')}</span>
-              <Button asChild size="sm" variant="outline" className="hover:cursor-pointer">
-                <Link href={`/kb/sync?step=0&kb=${kbId}`}>+ {t('pages.kbSync.addSync')}</Link>
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="flex items-center gap-1"
+                  onClick={handleSyncAllDirectories}
+                  disabled={!!syncingId || batchSyncingIds.size > 0 || syncDirs.length === 0}
+                >
+                  {batchSyncingIds.size > 0 ? (
+                    <div className="animate-spin h-4 w-4 border-2 border-gray-500 border-t-transparent rounded-full"></div>
+                  ) : (
+                    <FolderSync className="w-4 h-4" />
+                  )}
+                  {batchSyncingIds.size > 0 ? t('pages.kbSync.syncing') : t('pages.kb.syncDirectories')}
+                </Button>
+                <Button asChild size="sm" variant="outline" className="hover:cursor-pointer">
+                  <Link href={`/kb/sync?step=0&kb=${kbId}`}>+ {t('pages.kbSync.addSync')}</Link>
+                </Button>
+              </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {syncDirsLoading ? (
@@ -558,7 +732,7 @@ export default function KbDetailPage() {
                       <span className="font-medium">{dir.name}</span>
                       <span
                         className={`ml-2 px-2 py-0.5 rounded text-xs font-medium ${
-                          syncingId === dir.id
+                          syncingId === dir.id || batchSyncingIds.has(dir.id)
                             ? 'bg-blue-50 text-blue-700 animate-pulse'
                             : dir.status === t('pages.kbSync.synced')
                             ? 'bg-green-50 text-green-700'
@@ -567,13 +741,13 @@ export default function KbDetailPage() {
                             : 'bg-gray-100 text-gray-700'
                         }`}
                       >
-                        {syncingId === dir.id ? t('pages.kbSync.syncing') : dir.status}
+                        {syncingId === dir.id || batchSyncingIds.has(dir.id) ? t('pages.kbSync.syncing') : dir.status}
                       </span>
                     </div>
                     <div className="text-xs text-gray-500 mb-2 break-all">{dir.path}</div>
                     <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
                       <span>{t('pages.kbSync.syncType')}:{dir.syncType}</span>
-                      <span>{t('pages.kbSync.lastSync')}:{dir.last}</span>
+                      <span>{t('pages.kbSync.lastSync')}:{dir.last ? formatLocalDateTime(dir.last) : 'Never synced'}</span>
                     </div>
                     <div className="flex justify-end gap-2 mt-2">
                       <Button 
@@ -587,7 +761,7 @@ export default function KbDetailPage() {
                       <Button
                         size="sm"
                         variant="default"
-                        disabled={!!syncingId}
+                        disabled={!!syncingId || batchSyncingIds.size > 0 || batchSyncingIds.has(dir.id)}
                         onClick={async () => {
                           setSyncingId(dir.id);
                           try {
@@ -649,10 +823,10 @@ export default function KbDetailPage() {
                         return (
                           <tr key={log.id || i} className="border-b last:border-0 dark:border-gray-800">
                             <td className="px-4 py-2">
-                              {startTime.toLocaleString('en-US')}
+                              {formatLocalDateTime(log.startTime)}
                             </td>
                             <td className="px-4 py-2">
-                              {syncDirs.find(dir => dir.id === log.syncDirectoryId)?.name || t('pages.kbSync.unknownDirectory')}
+                              {log.dirName || syncDirs.find(dir => dir.id === log.syncDirectoryId)?.name || t('pages.kbSync.unknownDirectory')}
                             </td>
                             <td className="px-4 py-2">
                               <span className={`px-2 py-0.5 rounded text-xs font-medium ${
@@ -699,14 +873,14 @@ export default function KbDetailPage() {
         </div>
       
       {/* Delete Confirmation Dialogs */}
-      <ConfirmDialog
+      <SyncDirDeleteDialog
         isOpen={showDeleteSyncDirDialog}
         onClose={() => setShowDeleteSyncDirDialog(false)}
         onConfirm={handleDeleteSyncDir}
-        message={syncDirToDelete ? t('pages.kbSync.confirmDeleteSyncDir', { name: syncDirToDelete.name }) : ''}
-        confirmText={t('common.buttons.delete')}
-        cancelText={t('common.buttons.cancel')}
-        confirmVariant="destructive"
+        syncDirName={syncDirToDelete?.name || ''}
+        cleanData={cleanDataOnDelete}
+        onCleanDataChange={setCleanDataOnDelete}
+        systemDefaultCleanData={systemCleanDataSetting}
       />
       
       <ConfirmDialog

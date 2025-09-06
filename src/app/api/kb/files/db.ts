@@ -67,6 +67,25 @@ export async function fileExists(path: string, syncDirectoryId: number) {
   return result.length > 0;
 }
 
+export async function getFileRecord(path: string, syncDirectoryId: number) {
+  const result = await db.select().from(files).where(and(eq(files.path, path), eq(files.sync_directory_id, syncDirectoryId))).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+// Check if file needs sync based on modification time
+export async function fileNeedsSync(path: string, syncDirectoryId: number, fileSystemMtime: string) {
+  const existingFile = await getFileRecord(path, syncDirectoryId);
+  if (!existingFile) {
+    return true; // File doesn't exist, needs sync
+  }
+  
+  if (!existingFile.file_mtime) {
+    return true; // No mtime recorded, needs sync
+  }
+  
+  return existingFile.file_mtime !== fileSystemMtime; // Compare modification times
+}
+
 // Get failed files list
 export async function getFailedFiles(syncDirectoryIds?: number[], kbId?: number, limit?: number, offset?: number) {
   try {

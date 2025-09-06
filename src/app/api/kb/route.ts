@@ -24,7 +24,44 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const { id } = await req.json();
-  await deleteKb(id);
-  return NextResponse.json({ success: true });
+  try {
+    const { id } = await req.json();
+    
+    if (!id) {
+      return NextResponse.json(
+        { error: "Knowledge base ID is required" },
+        { status: 400 }
+      );
+    }
+
+    console.log(`[API] Starting deletion of knowledge base ${id}`);
+    const result = await deleteKb(id);
+    
+    if (result.success) {
+      console.log(`[API] Knowledge base ${id} deleted successfully:`, result.stats);
+      return NextResponse.json({
+        success: true,
+        message: "Knowledge base and all related data deleted successfully",
+        stats: result.stats,
+        errors: result.errors
+      });
+    } else {
+      console.error(`[API] Knowledge base ${id} deletion failed:`, result.errors);
+      return NextResponse.json({
+        success: false,
+        error: "Knowledge base deletion failed",
+        stats: result.stats,
+        errors: result.errors
+      }, { status: 500 });
+    }
+  } catch (error) {
+    console.error("Knowledge base deletion API error:", error);
+    return NextResponse.json(
+      { 
+        error: "Knowledge base deletion failed", 
+        details: error instanceof Error ? error.message : 'Unknown error' 
+      },
+      { status: 500 }
+    );
+  }
 }

@@ -1,8 +1,9 @@
 import { db } from '../../db';
-import { files, documentChunks, embeddings, syncDirectories } from '../../db/schema';
+import { files, documentChunks, syncDirectories } from '../../db/schema';
 import { eq, and, inArray, count, or } from 'drizzle-orm';
 import { Document } from '@langchain/core/documents';
 import { FileStatus } from '../../db/schema';
+import { getLanceDBManager } from '../../llm';
 
 export interface ChunkData {
   file_id: number;
@@ -11,11 +12,6 @@ export interface ChunkData {
   metadata: Record<string, any>;
 }
 
-export interface EmbeddingData {
-  chunk_id: number;
-  embedding_model_id: number;
-  vector: number[];
-}
 
 export class DocumentDB {
   // Update file status
@@ -112,18 +108,6 @@ export class DocumentDB {
     return insertedChunk[0]?.id || 0;
   }
 
-  // Batch insert embedding vectors
-  static async insertEmbeddings(embeddingsData: EmbeddingData[]): Promise<void> {
-    if (embeddingsData.length === 0) return;
-
-    const vectorData = embeddingsData.map(emb => ({
-      chunk_id: emb.chunk_id,
-      embedding_model_id: emb.embedding_model_id,
-      vector: JSON.stringify(emb.vector),
-    }));
-
-    await db.insert(embeddings).values(vectorData);
-  }
 
   // Get all chunks for a file
   static async getFileChunks(fileId: number): Promise<Document[]> {
@@ -170,46 +154,9 @@ export class DocumentDB {
     });
   }
 
-  // Get all embeddings for a file
-  static async getFileEmbeddings(fileId: number, embeddingModelId?: number): Promise<EmbeddingData[]> {
-    const query = db
-      .select({
-        chunk_id: embeddings.chunk_id,
-        embedding_model_id: embeddings.embedding_model_id,
-        vector: embeddings.vector,
-      })
-      .from(embeddings)
-      .innerJoin(documentChunks, eq(embeddings.chunk_id, documentChunks.id))
-      .where(
-        embeddingModelId 
-          ? and(eq(documentChunks.file_id, fileId), eq(embeddings.embedding_model_id, embeddingModelId))
-          : eq(documentChunks.file_id, fileId)
-      );
 
-    const results = await query;
-    
-    return results.map(row => ({
-      chunk_id: row.chunk_id,
-      embedding_model_id: row.embedding_model_id,
-      vector: JSON.parse(row.vector),
-    }));
-  }
-
-  // Delete all chunks and embeddings for a file
+  // Delete all chunks for a file
   static async deleteFileData(fileId: number): Promise<void> {
-    // First delete embedding vectors
-    const chunks = await db
-      .select({ id: documentChunks.id })
-      .from(documentChunks)
-      .where(eq(documentChunks.file_id, fileId));
-
-    if (chunks.length > 0) {
-      const chunkIds = chunks.map(c => c.id);
-      await db
-        .delete(embeddings)
-        .where(inArray(embeddings.chunk_id, chunkIds));
-    }
-
     // Delete chunk data
     await db
       .delete(documentChunks)
@@ -312,16 +259,11 @@ export class DocumentDB {
   // Get chunk statistics
   static async getChunkStats(): Promise<{
     totalChunks: number;
-    totalEmbeddings: number;
     averageChunksPerFile: number;
   }> {
     const [chunksResult] = await db
       .select({ count: count() })
       .from(documentChunks);
-    
-    const [embeddingsResult] = await db
-      .select({ count: count() })
-      .from(embeddings);
     
     const [filesResult] = await db
       .select({ count: count() })
@@ -329,13 +271,128 @@ export class DocumentDB {
       .where(eq(files.status, FileStatus.COMPLETED));
     
     const totalChunks = Number(chunksResult?.count || 0);
-    const totalEmbeddings = Number(embeddingsResult?.count || 0);
     const completedFiles = Number(filesResult?.count || 0);
     
     return {
       totalChunks,
-      totalEmbeddings,
       averageChunksPerFile: completedFiles > 0 ? totalChunks / completedFiles : 0,
     };
+  }
+
+  // Delete all files and related data from a specific sync directory
+  static async deleteFilesBySyncDirectoryId(syncDirectoryId: number, kbId: number): Promise<{
+    deletedFiles: number;
+    deletedChunks: number;
+    vectorDeletionSuccessCount: number;
+    vectorDeletionFailureCount: number;
+    errors: string[];
+  }> {
+    const errors: string[] = [];
+    let deletedFiles = 0;
+    let deletedChunks = 0;
+    let vectorDeletionSuccessCount = 0;
+    let vectorDeletionFailureCount = 0;
+
+    try {
+      // Step 1: Get all files in the sync directory
+      const filesToDelete = await db
+        .select({ 
+          id: files.id, 
+          name: files.name,
+          path: files.path 
+        })
+        .from(files)
+        .where(eq(files.sync_directory_id, syncDirectoryId));
+
+      console.log(`[DocumentDB] Found ${filesToDelete.length} files to delete in sync directory ${syncDirectoryId}`);
+
+      if (filesToDelete.length === 0) {
+        return { 
+          deletedFiles: 0, 
+          deletedChunks: 0, 
+          vectorDeletionSuccessCount: 0,
+          vectorDeletionFailureCount: 0,
+          errors: [] 
+        };
+      }
+
+      const fileIds = filesToDelete.map(f => f.id);
+
+      // Step 2: Get chunk counts for statistics
+      const chunkCount = await db
+        .select({ count: count() })
+        .from(documentChunks)
+        .where(inArray(documentChunks.file_id, fileIds));
+      
+      const totalChunks = Number(chunkCount[0]?.count || 0);
+
+      console.log(`[DocumentDB] Deletion statistics - Files: ${filesToDelete.length}, Chunks: ${totalChunks}`);
+
+      // Step 4: Delete vector data from LanceDB (batch operation)
+      try {
+        const tableName = `kb_${kbId}`;
+        console.log(`[DocumentDB] Starting batch vector deletion from LanceDB table: ${tableName} for ${filesToDelete.length} files`);
+        const lanceManager = await getLanceDBManager(tableName);
+        
+        const fileIds = filesToDelete.map(f => f.id);
+        const batchResult = await lanceManager.deleteDocumentsByFileIds(fileIds);
+        
+        vectorDeletionSuccessCount = batchResult.successCount;
+        vectorDeletionFailureCount = batchResult.failureCount;
+        
+        if (batchResult.errors.length > 0) {
+          errors.push(...batchResult.errors);
+        }
+        
+        console.log(`[DocumentDB] Batch vector deletion completed: ${batchResult.totalDeleted} documents deleted, ${vectorDeletionSuccessCount} files succeeded, ${vectorDeletionFailureCount} files failed`);
+        
+      } catch (error) {
+        vectorDeletionFailureCount = filesToDelete.length; // All files failed if we can't access LanceDB
+        const errorMsg = `Error accessing LanceDB for knowledge base ${kbId}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        errors.push(errorMsg);
+        console.error(`[DocumentDB] ${errorMsg}`, error);
+      }
+
+      // Step 5: Delete document chunks from database
+      if (totalChunks > 0) {
+        await db
+          .delete(documentChunks)
+          .where(inArray(documentChunks.file_id, fileIds));
+        
+        deletedChunks = totalChunks;
+        console.log(`[DocumentDB] Deleted ${deletedChunks} document chunks`);
+      }
+
+      // Step 6: Delete file records from database
+      await db
+        .delete(files)
+        .where(inArray(files.id, fileIds));
+      
+      deletedFiles = filesToDelete.length;
+      console.log(`[DocumentDB] Deleted ${deletedFiles} file records`);
+
+      console.log(`[DocumentDB] Successfully cleaned up sync directory ${syncDirectoryId}: ${deletedFiles} files, ${deletedChunks} chunks, ${vectorDeletionSuccessCount} vector deletions succeeded, ${vectorDeletionFailureCount} vector deletions failed`);
+      
+      return {
+        deletedFiles,
+        deletedChunks,
+        vectorDeletionSuccessCount,
+        vectorDeletionFailureCount,
+        errors
+      };
+
+    } catch (error) {
+      const errorMsg = `Critical error during batch deletion for sync directory ${syncDirectoryId}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      errors.push(errorMsg);
+      console.error(errorMsg, error);
+      
+      return {
+        deletedFiles,
+        deletedChunks,
+        vectorDeletionSuccessCount,
+        vectorDeletionFailureCount,
+        errors
+      };
+    }
   }
 } 
